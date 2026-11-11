@@ -16,6 +16,9 @@
   #side { width:380px; max-width:46vw; background:var(--panel); border-left:1px solid var(--line); overflow-y:auto; padding:12px; }
   h2 { font-size:17px; margin:14px 0 8px; color:var(--acc); }
   h2:first-child { margin-top:0; }
+  .sub { margin:12px 0 4px; font-weight:700; color:#cbd5e1; border-top:1px solid var(--line); padding-top:8px; }
+  summary { font-size:17px; font-weight:700; color:var(--acc); cursor:pointer; padding:4px 0; }
+  details > summary::marker { color:var(--acc); }
   .row { display:flex; gap:6px; align-items:center; margin:6px 0; flex-wrap:wrap; }
   button, select, input, textarea { font:inherit; color:var(--fg); background:#2a323d; border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
   button { cursor:pointer; } button:hover { background:#36404d; }
@@ -43,14 +46,6 @@
     <div class="row" id="modeBtns"><button data-m="elev" class="on">고도맵</button><button data-m="terrain">지형맵</button></div>
     <div id="legend" class="card" style="display:none"></div>
 
-    <h2>환경 (날씨 · 시간대 · 바람)</h2>
-    <div class="row"><label>날씨 <select id="vweather"><option value="1">맑음</option><option value="0.6">박무</option><option value="0.45">비</option><option value="0.15">안개</option></select></label>
-      <label>시간대 <select id="vtime"><option value="1">낮</option><option value="0.6">새벽·황혼</option><option value="0.2">밤</option></select></label></div>
-    <div class="row"><label>풍향 <input type="number" id="wdir" min="0" max="359" step="1" style="width:76px">°</label>
-      <label>풍속 <input type="number" id="wspd" min="0" max="40" step="0.5" style="width:70px"> m/s</label></div>
-    <div class="row"><button id="wRoll">바람 새로 굴리기</button><button id="envRoll">환경 전체 굴리기</button></div>
-    <div class="dim">풍향 = 바람이 불어오는 쪽(0°=북, 90°=동). 날씨·시간대는 시야 배율에 반영됩니다(맑음·낮 = 1).</div>
-
     <h2>확대 / 축소</h2>
     <div class="row" id="zoomBtns"></div>
     <div class="row"><button id="zOut">－</button><button id="zIn">＋</button><span class="dim" id="zinfo"></span></div>
@@ -68,33 +63,44 @@
     <div class="dim" id="toolhint">클릭한 칸의 정보를 봅니다. 드래그=이동, 휠/핀치=확대.</div>
     <div class="card" id="dist" style="margin-top:6px;display:none"></div>
 
-    <h2>진행자 위치 · 반경</h2>
-    <div class="card" id="gminfo">‘진행자 위치’ 도구로 칸을 클릭해 지정합니다.</div>
-    <div class="row"><button id="gmGo">진행자 위치로 이동</button></div>
-    <div class="row"><label><input type="checkbox" id="rshow"> 반경 표시</label>
-      <label>반경 <input type="number" id="rkm" value="50" min="5" step="5" style="width:80px"> km</label></div>
-    <div class="row"><label>동심원 간격 <input type="number" id="rstep" value="0" min="0" step="5" style="width:80px"> km <span class="dim">(0=원 하나)</span></label></div>
+    <h2>진행자 · 탐지 범위</h2>
+    <div class="row"><label><input type="checkbox" id="rshow"> 반경</label>
+      <label><input type="checkbox" id="vshow"> 시야</label>
+      <label><input type="checkbox" id="sshow"> 냄새</label></div>
+    <details id="detBox">
+      <summary>세부 설정</summary>
+      <div class="card" id="gminfo" style="margin-top:8px">‘진행자 위치’ 도구로 칸을 클릭해 지정합니다.</div>
+      <div class="row"><button id="gmGo">진행자 위치로 이동</button></div>
 
-    <h2>시야</h2>
-    <div class="row"><label><input type="checkbox" id="vshow"> 시야 범위 표시</label></div>
-    <div class="row"><label>기본 시야 <input type="number" id="v0" value="20" min="1" step="1" style="width:70px"> km <span class="dim">(평지·맑음·낮)</span></label></div>
-    <div class="row"><label>눈높이 <input type="number" id="veye" value="2" min="0" step="0.5" style="width:64px"> m</label>
-      <label>대상 높이 <input type="number" id="vtgt" value="10" min="0" step="1" style="width:64px"> m</label></div>
-    <div class="row"><label>최고 고도 <input type="number" id="vhmax" value="3000" min="100" step="100" style="width:80px"> m <span class="dim">(상대 35 = 이 값)</span></label></div>
-    <div class="row"><label>경사 영향 <input type="number" id="vk" value="4" min="0" max="10" step="0.5" style="width:64px"> <span class="dim">(0=없음)</span></label></div>
-    <div class="card" id="vInfo">진행자 위치를 지정하고 ‘시야 범위 표시’를 켜세요.</div>
-    <div class="dim">고도 가림(가시선) + 지형별 감쇠(숲은 짧고 물·초원은 길게) + 오르막/내리막 보정 + 날씨·시간대. 노란 칸이 보이는 칸입니다.</div>
+      <div class="sub">반경</div>
+      <div class="row"><label>반경 <input type="number" id="rkm" value="50" min="5" step="5" style="width:80px"> km</label>
+        <label>동심원 간격 <input type="number" id="rstep" value="0" min="0" step="5" style="width:70px"> km <span class="dim">(0=원 하나)</span></label></div>
 
-    <h2>냄새 탐지 (바람)</h2>
-    <div class="row"><label><input type="checkbox" id="sshow"> 냄새 탐지 범위 표시</label></div>
-    <div class="row"><label>기본 반경 <input type="number" id="skm" value="30" min="5" step="5" style="width:80px"> km <span class="dim">(무풍 시 원)</span></label></div>
-    <div class="card" id="wInfo"></div>
-    <div class="dim">탐지 타원은 바람이 불어오는 쪽으로 길어지며 진행자가 한쪽 초점입니다. 풍향·풍속은 위 ‘환경’에서 조절합니다.</div>
+      <div class="sub">시야</div>
+      <div class="row"><label>기본 시야 <input type="number" id="v0" value="20" min="1" step="1" style="width:70px"> km <span class="dim">(평지·맑음·낮)</span></label></div>
+      <div class="row"><label>눈높이 <input type="number" id="veye" value="2" min="0" step="0.5" style="width:64px"> m</label>
+        <label>대상 높이 <input type="number" id="vtgt" value="10" min="0" step="1" style="width:64px"> m</label></div>
+      <div class="row"><label>최고 고도 <input type="number" id="vhmax" value="3000" min="100" step="100" style="width:80px"> m <span class="dim">(상대 35 = 이 값)</span></label></div>
+      <div class="row"><label>경사 영향 <input type="number" id="vk" value="4" min="0" max="10" step="0.5" style="width:64px"> <span class="dim">(0=없음)</span></label></div>
+      <div class="card" id="vInfo">진행자 위치를 지정하고 ‘시야’를 켜세요.</div>
+      <div class="dim">고도 가림(가시선) + 지형별 감쇠 + 오르막/내리막 보정 + 날씨·시간대. 분홍 칸이 보이는 칸입니다.</div>
+
+      <div class="sub">냄새 (바람)</div>
+      <div class="row"><label>기본 반경 <input type="number" id="skm" value="30" min="5" step="5" style="width:80px"> km <span class="dim">(무풍 시 원)</span></label></div>
+      <div class="card" id="wInfo"></div>
+      <div class="dim">탐지 타원은 바람이 불어오는 쪽으로 길어지며 진행자가 한쪽 초점입니다. 풍향·풍속은 맨 아래 ‘환경’에서 조절합니다.</div>
+    </details>
 
     <h2>주사위</h2>
-    <div class="row" id="dice"></div>
-    <div class="row"><input type="text" id="expr" value="2d6+1" placeholder="예: 3d8+2, d100, 4d6k3"><button id="rollBtn">굴리기</button></div>
-    <div class="card"><div class="big" id="rollRes">–</div><div class="dim" id="rollDetail">NdM(+/-K) 식, kN은 높은 N개만 합산</div></div>
+    <div class="dim">주사위 종류</div>
+    <div class="row" id="dieType"><button data-f="6" class="on">D6</button><button data-f="8">D8</button><button data-f="10">D10</button><button data-f="20">D20</button></div>
+    <div class="dim">개수</div>
+    <div class="row" id="dieCount"><button data-n="1" class="on">1</button><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button><button data-n="5">5</button></div>
+    <div class="row"><label>보정치 <button id="modDn">−</button><input type="number" id="dmod" value="0" step="1" style="width:70px;text-align:center"><button id="modUp">＋</button></label>
+      <button id="rollBtn" style="margin-left:auto;font-weight:700">굴리기</button></div>
+    <div class="card"><div class="dim" id="rollForm">굴린 결과의 수식이 여기에 표시됩니다.</div>
+      <div class="big" id="rollRes">–</div>
+      <div class="row"><button id="copyBtn">수식·결과 복사</button><span class="dim" id="copyMsg"></span></div></div>
     <div class="row"><button id="rndTile">무작위 칸 뽑기(육지)</button><button id="rndDir">무작위 방향</button></div>
 
     <h2>표시(마커)</h2>
@@ -112,6 +118,18 @@
       <input type="file" id="file" accept=".json" style="display:none">
     </div>
     <div class="dim">저장은 이 브라우저(localStorage)에도 자동으로 됩니다.</div>
+
+    <details id="envBox" style="margin-top:14px">
+      <summary>환경 (날씨 · 시간대 · 바람)</summary>
+      <div class="row" style="margin-top:8px"><label>날씨 <select id="vweather"><option value="1">맑음</option><option value="0.6">박무</option><option value="0.45">비</option><option value="0.15">안개</option></select></label></div>
+      <div class="row"><label>시각 <input type="time" id="vclock" step="900" value="12:00"></label><span id="vphase" class="tag"></span></div>
+      <div class="row"><button data-cm="-60">−1시간</button><button data-cm="-15">−15분</button><button data-cm="15">+15분</button><button data-cm="60">+1시간</button></div>
+      <div class="dim">시간은 15분 단위로 넘어갑니다. 새벽 04:30~06:30 · 낮 06:30~17:30 · 황혼 17:30~20:00 · 밤 20:00~04:30 (시야 배율 0.6 / 1 / 0.6 / 0.2)</div>
+      <div class="row" style="margin-top:8px"><label>풍향 <input type="number" id="wdir" min="0" max="359" step="1" style="width:76px">°</label>
+        <label>풍속 <input type="number" id="wspd" min="0" max="40" step="0.5" style="width:70px"> m/s</label></div>
+      <div class="row"><button id="wRoll">바람 새로 굴리기</button><button id="envRoll">환경 전체 굴리기</button></div>
+      <div class="dim">풍향 = 바람이 불어오는 쪽(0°=북, 90°=동).</div>
+    </details>
   </div>
 </div>
 
@@ -143,7 +161,7 @@ Promise.all([
 }).catch(e => { $("hud").textContent = "데이터를 불러오지 못했습니다 (로컬 파일로 열면 막힐 수 있음 — 간단한 웹서버로 실행하세요): " + e; });
 
 function loadLocal() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
-function saveLocal() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({markers:state.markers, party:state.party, gm:state.gm, wind:state.wind, env:{w:$("vweather").selectedIndex, t:$("vtime").selectedIndex}, log:state.log, seq:state.seq})); } catch (e) {} }
+function saveLocal() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({markers:state.markers, party:state.party, gm:state.gm, wind:state.wind, env:{w:$("vweather").selectedIndex, c:clockMin}, log:state.log, seq:state.seq})); } catch (e) {} }
 
 // ---------- 지형맵(타일 색) ----------
 const CLS_COL = ["#a9cde8","#3a86c8","#d9c27a","#2f6b4f","#8fb8cc","#8bbf6a","#b8aec9","#e2a58f","#56d4e8"];
@@ -184,7 +202,7 @@ function computeVis() {
   if (!state.gm) return;
   if (!Em) buildElev();
   const nx = T.nx, ny = T.ny; visMask = new Uint8Array(nx * ny);
-  const V0 = (+$("v0").value || 20) * (+$("vweather").value) * (+$("vtime").value), eye = +$("veye").value || 0, tgt = +$("vtgt").value || 0,
+  const V0 = (+$("v0").value || 20) * (+$("vweather").value) * timeMult(), eye = +$("veye").value || 0, tgt = +$("vtgt").value || 0,
         mpu = (+$("vhmax").value || 3000) / 35, kS = +$("vk").value || 0, REFF = 7.3e6, RMAX = 150, N = 720;
   const gx = (state.gm.x + 0.5) * 5, gy = (state.gm.y + 0.5) * 5, Eg = hAt(gx, gy, mpu), Eo = Eg + eye;
   let best = 0, worst = 1e9, bestDir = 0, worstDir = 0;
@@ -216,7 +234,7 @@ function drawVis(ts) {
   if (!$("vshow").checked || !state.gm) return;
   if (visDirty) { computeVis(); showVis(); if (state.sel) showInfo(); }
   if (!visList.length) return;
-  ctx.fillStyle = "rgba(250,204,21,.38)"; const nx = T.nx, pad = ts < 3 ? 0.6 : 0;
+  ctx.fillStyle = "rgba(244,143,177,.5)"; const nx = T.nx, pad = ts < 3 ? 0.6 : 0;
   for (const id of visList) { const x = id % nx, y = (id - x) / nx; ctx.fillRect(view.x + x * ts - pad / 2, view.y + (T.ny - 1 - y) * ts - pad / 2, ts + pad, ts + pad); }
 }
 const markVisDirty = () => { visDirty = true; redraw(); };
@@ -239,8 +257,15 @@ function inSmell(x, y) {
   const u = dx * g.ux + dy * g.uy, v = -dx * g.uy + dy * g.ux;
   return ((u - g.c) / g.a) ** 2 + (v / g.b) ** 2 <= 1;
 }
-function applyEnv(e) { if (!e) return; $("vweather").selectedIndex = e.w || 0; $("vtime").selectedIndex = e.t || 0; visDirty = true; }
-function envNames() { return [$("vweather").selectedOptions[0].text, $("vtime").selectedOptions[0].text]; }
+let clockMin = 12 * 60;                                 // 하루 중 분 (0~1439), 15분 단위
+const PHASES = [["새벽", 270, 390, 0.6], ["낮", 390, 1050, 1], ["황혼", 1050, 1200, 0.6]];   // [이름, 시작분, 끝분, 시야 배율]; 나머지는 밤
+function phaseOf(m) { for (const ph of PHASES) if (m >= ph[1] && m < ph[2]) return ph; return ["밤", 0, 0, 0.2]; }
+const timeMult = () => phaseOf(clockMin)[3];
+const clockStr = () => String(Math.floor(clockMin / 60)).padStart(2, "0") + ":" + String(clockMin % 60).padStart(2, "0");
+function syncClock() { $("vclock").value = clockStr(); $("vphase").textContent = phaseOf(clockMin)[0] + ` (시야 ×${timeMult()})`; }
+function setClock(m, log) { clockMin = ((Math.round(m / 15) * 15) % 1440 + 1440) % 1440; syncClock(); visDirty = true; saveLocal(); if (log) logEvt(`환경: 시각 ${clockStr()} (${phaseOf(clockMin)[0]})`); redraw(); }
+function applyEnv(e) { if (!e) return; $("vweather").selectedIndex = e.w || 0; if (e.c !== undefined) clockMin = e.c; syncClock(); visDirty = true; }
+function envNames() { return [$("vweather").selectedOptions[0].text, `${clockStr()} ${phaseOf(clockMin)[0]}`]; }
 function syncWind() {
   const w = state.wind; if (!w) return;
   $("wdir").value = w.from; $("wspd").value = w.speed;
@@ -419,22 +444,19 @@ function showDist(a, b) {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 // ---------- 주사위 ----------
-function rollExpr(src) {
-  const s = src.replace(/\s+/g, "").toLowerCase();
-  const m = s.match(/^(\d*)d(\d+)(?:k(\d+))?([+-]\d+)?$/);
-  if (!m) return null;
-  const n = Math.min(+(m[1] || 1), 200), f = +m[2], keep = m[3] ? +m[3] : null, bonus = m[4] ? +m[4] : 0;
-  if (f < 2 || n < 1) return null;
-  const rs = Array.from({length: n}, () => 1 + Math.floor(rand() * f));
-  let used = rs.slice(); if (keep) used = rs.slice().sort((a, b) => b - a).slice(0, keep);
-  const sum = used.reduce((a, b) => a + b, 0) + bonus;
-  return {sum, rs, bonus, text: `${rs.join(", ")}${keep ? ` (상위 ${keep}개: ${used.join("+")})` : ""}${bonus ? ` ${bonus > 0 ? "+" : ""}${bonus}` : ""}`};
-}
 function rand() { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] / 4294967296; }
-function doRoll(src) {
-  const r = rollExpr(src); if (!r) { $("rollDetail").textContent = "식을 알아볼 수 없습니다. 예: 2d6+1, d20, 4d6k3"; return; }
-  $("rollRes").textContent = r.sum; $("rollDetail").textContent = `${src} → ${r.text}`;
-  logEvt(`🎲 ${src} = <b>${r.sum}</b> <span class="tag">[${r.text}]</span>`);
+let dieF = 6, dieN = 1, lastRoll = "";
+function rollDice() {
+  const mod = Math.trunc(+$("dmod").value || 0), rs = Array.from({length: dieN}, () => 1 + Math.floor(rand() * dieF));
+  const sub = rs.reduce((x, y) => x + y, 0), sum = sub + mod, ms = mod === 0 ? "" : (mod > 0 ? "+" : "-") + Math.abs(mod);
+  const text = `${dieN}D${dieF}${ms}=(${rs.join("+")})${ms}=${sum}`;
+  lastRoll = text; $("rollForm").textContent = text; $("rollRes").textContent = sum; $("copyMsg").textContent = "";
+  logEvt(`🎲 ${text}`);
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+  const ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch (e) {} ta.remove(); return ok;
 }
 
 // ---------- 마커 ----------
@@ -452,14 +474,20 @@ function renderLog() { const el = $("log"); el.innerHTML = state.log.map(l => `<
 // ---------- UI 초기화 ----------
 function initUI() {
   document.querySelectorAll("#modeBtns button").forEach(b => b.onclick = () => { mapMode = b.dataset.m; document.querySelectorAll("#modeBtns button").forEach(x => x.classList.toggle("on", x === b)); $("legend").style.display = mapMode === "terrain" ? "block" : "none"; redraw(); });
-  ["vshow","v0","veye","vtgt","vhmax","vk","vweather","vtime"].forEach(id => { $(id).oninput = $(id).onchange = markVisDirty; });
+  ["vshow","v0","veye","vtgt","vhmax","vk","vweather"].forEach(id => { $(id).oninput = $(id).onchange = markVisDirty; });
   $("sshow").onchange = () => { redraw(); if (state.sel) showInfo(); };
   $("skm").oninput = () => { syncWind(); redraw(); if (state.sel) showInfo(); };
   $("wdir").oninput = $("wspd").oninput = () => { state.wind = {from: ((+$("wdir").value || 0) % 360 + 360) % 360, speed: Math.max(0, +$("wspd").value || 0)}; syncWindInfoOnly(); redraw(); saveLocal(); if (state.sel) showInfo(); };
   $("wRoll").onclick = () => rollWind(false);
   $("vweather").addEventListener("change", () => { saveLocal(); logEvt(`환경: 날씨 ${envNames()[0]}`); });
-  $("vtime").addEventListener("change", () => { saveLocal(); logEvt(`환경: 시간대 ${envNames()[1]}`); });
-  $("envRoll").onclick = () => { $("vweather").selectedIndex = Math.floor(rand() * 4); $("vtime").selectedIndex = Math.floor(rand() * 3); rollWind(true); syncWind(); visDirty = true; const [w, t] = envNames(); logEvt(`🌦 환경: ${w} · ${t} · ${compassName(state.wind.from)}풍 ${state.wind.speed} m/s`); saveLocal(); redraw(); };
+  document.querySelectorAll("[data-cm]").forEach(b => b.onclick = () => setClock(clockMin + +b.dataset.cm, true));
+  $("vclock").onchange = () => { const [h, m] = ($("vclock").value || "12:00").split(":").map(Number); setClock(h * 60 + m, true); };
+  const envBox = $("envBox"); try { if (localStorage.getItem("island-env-open") === "1") envBox.open = true; } catch (e) {}
+  const detBox = $("detBox"); try { if (localStorage.getItem("island-det-open") === "1") detBox.open = true; } catch (e) {}
+  detBox.addEventListener("toggle", () => { try { localStorage.setItem("island-det-open", detBox.open ? "1" : "0"); } catch (e) {} });
+  envBox.addEventListener("toggle", () => { try { localStorage.setItem("island-env-open", envBox.open ? "1" : "0"); } catch (e) {} });
+  syncClock();
+  $("envRoll").onclick = () => { $("vweather").selectedIndex = Math.floor(rand() * 4); clockMin = Math.floor(rand() * 96) * 15; syncClock(); rollWind(true); syncWind(); visDirty = true; const [w, t] = envNames(); logEvt(`🌦 환경: ${w} · ${t} · ${compassName(state.wind.from)}풍 ${state.wind.speed} m/s`); saveLocal(); redraw(); };
   $("zoomBtns").innerHTML = ZOOMS.map(([n, z]) => `<button data-z="${z}">${n}</button>`).join("");
   document.querySelectorAll("#zoomBtns button").forEach(b => b.onclick = () => setZoom(+b.dataset.z));
   $("zIn").onclick = () => { const r = cv.parentElement.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.5); };
@@ -467,17 +495,19 @@ function initUI() {
   $("gmGo").onclick = () => { if (state.gm) { centerOn(state.gm.x, state.gm.y); redraw(); syncZoom(); } };
   $("rshow").onchange = $("rkm").oninput = $("rstep").oninput = () => { redraw(); if (state.sel) showInfo(); };
   $("mtype").innerHTML = Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${k}종 ${v[0]}</option>`).join("");
-  $("dice").innerHTML = [4, 6, 8, 10, 12, 20, 100].map(n => `<button data-d="${n}">d${n}</button>`).join("");
-  document.querySelectorAll("#dice button").forEach(b => b.onclick = () => { $("expr").value = "d" + b.dataset.d; doRoll("d" + b.dataset.d); });
-  $("rollBtn").onclick = () => doRoll($("expr").value); $("expr").onkeydown = e => { if (e.key === "Enter") doRoll($("expr").value); };
+  document.querySelectorAll("#dieType button").forEach(b => b.onclick = () => { dieF = +b.dataset.f; document.querySelectorAll("#dieType button").forEach(x => x.classList.toggle("on", x === b)); });
+  document.querySelectorAll("#dieCount button").forEach(b => b.onclick = () => { dieN = +b.dataset.n; document.querySelectorAll("#dieCount button").forEach(x => x.classList.toggle("on", x === b)); });
+  $("modDn").onclick = () => { $("dmod").value = (+$("dmod").value || 0) - 1; }; $("modUp").onclick = () => { $("dmod").value = (+$("dmod").value || 0) + 1; };
+  $("rollBtn").onclick = rollDice;
+  $("copyBtn").onclick = async () => { if (!lastRoll) { $("copyMsg").textContent = "복사할 결과가 없습니다."; return; } $("copyMsg").textContent = (await copyText(lastRoll)) ? "복사됨: " + lastRoll : "복사 실패 (브라우저 권한 확인)"; };
   const hints = {gm:"클릭한 칸을 진행자 위치로 지정합니다 (붉은 X).", select:"클릭한 칸의 정보를 봅니다.", party:"클릭한 칸으로 파티 말을 옮깁니다.", measure:"두 칸을 차례로 클릭하면 직선거리를 잽니다."};
   document.querySelectorAll("#tools button").forEach(b => b.onclick = () => { tool = b.dataset.t; measureA = null; document.querySelectorAll("#tools button").forEach(x => x.classList.toggle("on", x === b)); $("toolhint").textContent = hints[tool] + " 드래그=이동, 휠/핀치=확대."; redraw(); });
   $("mAdd").onclick = () => { if (!state.sel) return; const m = {type:+$("mtype").value, x:state.sel.x, y:state.sel.y, desc:$("mdesc").value.trim()}; state.markers.push(m); $("mdesc").value = ""; logEvt(`마커 추가 [${TYPES[m.type][0]}] (${m.x},${m.y}) ${esc(m.desc)}`); renderMarkers(); showInfo(); redraw(); };
   $("mDel").onclick = () => { if (!state.sel) return; const n = state.markers.length; state.markers = state.markers.filter(m => !(m.x === state.sel.x && m.y === state.sel.y)); if (n !== state.markers.length) logEvt(`마커 삭제 (${state.sel.x},${state.sel.y})`); renderMarkers(); showInfo(); redraw(); };
   $("mshow").onchange = $("gshow").onchange = redraw;
   $("rndTile").onclick = () => { for (let i = 0; i < 2000; i++) { const x = Math.floor(rand() * T.nx), y = Math.floor(rand() * T.ny), c = cls(x, y); if (c !== 0 && c !== 1) { state.sel = {x, y}; centerOn(x, y); logEvt(`무작위 칸: (${x},${y}) ${T.classes[c]}`); showInfo(); redraw(); return; } } };
-  $("rndDir").onclick = () => { const d = ["북","북동","동","남동","남","남서","서","북서"]; const r = d[Math.floor(rand() * 8)]; $("rollRes").textContent = r; $("rollDetail").textContent = "무작위 방향"; logEvt(`🧭 방향: <b>${r}</b>`); };
-  $("saveBtn").onclick = () => { const blob = new Blob([JSON.stringify({markers:state.markers, party:state.party, gm:state.gm, wind:state.wind, env:{w:$("vweather").selectedIndex, t:$("vtime").selectedIndex}, log:state.log, seq:state.seq}, null, 1)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "session.json"; a.click(); };
+  $("rndDir").onclick = () => { const d = ["북","북동","동","남동","남","남서","서","북서"]; const r = d[Math.floor(rand() * 8)]; $("rollRes").textContent = r; $("rollForm").textContent = "무작위 방향"; lastRoll = "무작위 방향: " + r; logEvt(`🧭 방향: <b>${r}</b>`); };
+  $("saveBtn").onclick = () => { const blob = new Blob([JSON.stringify({markers:state.markers, party:state.party, gm:state.gm, wind:state.wind, env:{w:$("vweather").selectedIndex, c:clockMin}, log:state.log, seq:state.seq}, null, 1)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "session.json"; a.click(); };
   $("loadBtn").onclick = () => $("file").click();
   $("file").onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const d = JSON.parse(await f.text()); state.markers = d.markers || []; state.party = d.party || null; state.gm = d.gm || null; state.wind = d.wind || state.wind; state.log = d.log || []; state.seq = d.seq || 0; visDirty = true; renderMarkers(); renderLog(); showGM(); syncWind(); applyEnv(d.env); redraw(); saveLocal(); } catch (err) { alert("불러오기 실패: " + err); } e.target.value = ""; };
   $("clearLog").onclick = () => { state.log = []; renderLog(); saveLocal(); };
