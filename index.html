@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>섬 지도 테스트 세션</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg:#14181d; --panel:#1d232b; --line:#323b47; --fg:#e8edf2; --dim:#93a0ae; --acc:#4da3ff; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif; font-size:16px; }
+  #app { display:flex; height:100%; }
+  #stage { flex:1; position:relative; min-width:0; overflow:hidden; }
+  #cv { width:100%; height:100%; display:block; cursor:crosshair; touch-action:none; }
+  #hud { position:absolute; left:10px; bottom:10px; background:#000b; padding:8px 12px; border-radius:8px; font-size:15px; line-height:1.5; pointer-events:none; }
+  #side { width:380px; max-width:46vw; background:var(--panel); border-left:1px solid var(--line); overflow-y:auto; padding:12px; }
+  h2 { font-size:17px; margin:14px 0 8px; color:var(--acc); }
+  h2:first-child { margin-top:0; }
+  .row { display:flex; gap:6px; align-items:center; margin:6px 0; flex-wrap:wrap; }
+  button, select, input, textarea { font:inherit; color:var(--fg); background:#2a323d; border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
+  button { cursor:pointer; } button:hover { background:#36404d; }
+  button.on { background:var(--acc); border-color:var(--acc); color:#06121f; font-weight:700; }
+  input[type=text], textarea { width:100%; }
+  .card { background:#232a33; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .dim { color:var(--dim); font-size:14px; }
+  #log { height:240px; overflow-y:auto; background:#10151a; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:14px; line-height:1.55; }
+  #log div { border-bottom:1px dashed #2a323d; padding:2px 0; }
+  .big { font-size:30px; font-weight:800; }
+  .dot { display:inline-block; width:12px; height:12px; border-radius:50%; border:1.5px solid #000; vertical-align:-1px; margin-right:6px; }
+  #mlist .m { display:flex; justify-content:space-between; gap:6px; padding:3px 0; border-bottom:1px dashed #2a323d; cursor:pointer; font-size:14px; }
+  #mlist .m:hover { background:#2a323d; }
+  .tag { font-size:13px; color:var(--dim); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="hud">불러오는 중…</div>
+  </div>
+  <div id="side">
+    <h2>지도 표시</h2>
+    <div class="row" id="modeBtns"><button data-m="elev" class="on">고도맵</button><button data-m="terrain">지형맵</button></div>
+    <div id="legend" class="card" style="display:none"></div>
+
+    <h2>환경 (날씨 · 시간대 · 바람)</h2>
+    <div class="row"><label>날씨 <select id="vweather"><option value="1">맑음</option><option value="0.6">박무</option><option value="0.45">비</option><option value="0.15">안개</option></select></label>
+      <label>시간대 <select id="vtime"><option value="1">낮</option><option value="0.6">새벽·황혼</option><option value="0.2">밤</option></select></label></div>
+    <div class="row"><label>풍향 <input type="number" id="wdir" min="0" max="359" step="1" style="width:76px">°</label>
+      <label>풍속 <input type="number" id="wspd" min="0" max="40" step="0.5" style="width:70px"> m/s</label></div>
+    <div class="row"><button id="wRoll">바람 새로 굴리기</button><button id="envRoll">환경 전체 굴리기</button></div>
+    <div class="dim">풍향 = 바람이 불어오는 쪽(0°=북, 90°=동). 날씨·시간대는 시야 배율에 반영됩니다(맑음·낮 = 1).</div>
+
+    <h2>확대 / 축소</h2>
+    <div class="row" id="zoomBtns"></div>
+    <div class="row"><button id="zOut">－</button><button id="zIn">＋</button><span class="dim" id="zinfo"></span></div>
+
+    <h2>선택한 칸</h2>
+    <div class="card" id="info">지도를 클릭하세요.</div>
+
+    <h2>도구</h2>
+    <div class="row" id="tools">
+      <button data-t="select" class="on">선택</button>
+      <button data-t="gm">진행자 위치</button>
+      <button data-t="party">파티 이동</button>
+      <button data-t="measure">거리 재기</button>
+    </div>
+    <div class="dim" id="toolhint">클릭한 칸의 정보를 봅니다. 드래그=이동, 휠/핀치=확대.</div>
+    <div class="card" id="dist" style="margin-top:6px;display:none"></div>
+
+    <h2>진행자 위치 · 반경</h2>
+    <div class="card" id="gminfo">‘진행자 위치’ 도구로 칸을 클릭해 지정합니다.</div>
+    <div class="row"><button id="gmGo">진행자 위치로 이동</button></div>
+    <div class="row"><label><input type="checkbox" id="rshow"> 반경 표시</label>
+      <label>반경 <input type="number" id="rkm" value="50" min="5" step="5" style="width:80px"> km</label></div>
+    <div class="row"><label>동심원 간격 <input type="number" id="rstep" value="0" min="0" step="5" style="width:80px"> km <span class="dim">(0=원 하나)</span></label></div>
+
+    <h2>시야</h2>
+    <div class="row"><label><input type="checkbox" id="vshow"> 시야 범위 표시</label></div>
+    <div class="row"><label>기본 시야 <input type="number" id="v0" value="20" min="1" step="1" style="width:70px"> km <span class="dim">(평지·맑음·낮)</span></label></div>
+    <div class="row"><label>눈높이 <input type="number" id="veye" value="2" min="0" step="0.5" style="width:64px"> m</label>
+      <label>대상 높이 <input type="number" id="vtgt" value="10" min="0" step="1" style="width:64px"> m</label></div>
+    <div class="row"><label>최고 고도 <input type="number" id="vhmax" value="3000" min="100" step="100" style="width:80px"> m <span class="dim">(상대 35 = 이 값)</span></label></div>
+    <div class="row"><label>경사 영향 <input type="number" id="vk" value="4" min="0" max="10" step="0.5" style="width:64px"> <span class="dim">(0=없음)</span></label></div>
+    <div class="card" id="vInfo">진행자 위치를 지정하고 ‘시야 범위 표시’를 켜세요.</div>
+    <div class="dim">고도 가림(가시선) + 지형별 감쇠(숲은 짧고 물·초원은 길게) + 오르막/내리막 보정 + 날씨·시간대. 노란 칸이 보이는 칸입니다.</div>
+
+    <h2>냄새 탐지 (바람)</h2>
+    <div class="row"><label><input type="checkbox" id="sshow"> 냄새 탐지 범위 표시</label></div>
+    <div class="row"><label>기본 반경 <input type="number" id="skm" value="30" min="5" step="5" style="width:80px"> km <span class="dim">(무풍 시 원)</span></label></div>
+    <div class="card" id="wInfo"></div>
+    <div class="dim">탐지 타원은 바람이 불어오는 쪽으로 길어지며 진행자가 한쪽 초점입니다. 풍향·풍속은 위 ‘환경’에서 조절합니다.</div>
+
+    <h2>주사위</h2>
+    <div class="row" id="dice"></div>
+    <div class="row"><input type="text" id="expr" value="2d6+1" placeholder="예: 3d8+2, d100, 4d6k3"><button id="rollBtn">굴리기</button></div>
+    <div class="card"><div class="big" id="rollRes">–</div><div class="dim" id="rollDetail">NdM(+/-K) 식, kN은 높은 N개만 합산</div></div>
+    <div class="row"><button id="rndTile">무작위 칸 뽑기(육지)</button><button id="rndDir">무작위 방향</button></div>
+
+    <h2>표시(마커)</h2>
+    <div class="row"><select id="mtype"></select><input type="text" id="mdesc" placeholder="설명" style="flex:1;min-width:120px"></div>
+    <div class="row"><button id="mAdd">선택한 칸에 추가</button><button id="mDel">선택한 칸 마커 삭제</button></div>
+    <div class="row"><label><input type="checkbox" id="mshow" checked> 지도에 표시</label><label><input type="checkbox" id="gshow" checked> 격자(확대 시)</label></div>
+    <div id="mlist" class="card" style="max-height:170px;overflow-y:auto"></div>
+
+    <h2>기록 / 저장</h2>
+    <div id="log"></div>
+    <div class="row">
+      <button id="saveBtn">세션 저장(.json)</button>
+      <button id="loadBtn">불러오기</button>
+      <button id="clearLog">기록 지우기</button>
+      <input type="file" id="file" accept=".json" style="display:none">
+    </div>
+    <div class="dim">저장은 이 브라우저(localStorage)에도 자동으로 됩니다.</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const TYPES = {1:["마을","#e11d48"], 2:["소시설","#fde047"], 3:["방향성 지형지물","#ffffff"], 4:["특별한 지형","#111111"], 5:["기타","#f97316"]};
+const SAVE_KEY = "island-session-v1";
+let T = null, img = new Image(), S = 4;
+let view = {x:0, y:0, k:1};                 // 화면 = (이미지좌표*k + x/y)
+let state = {markers:[], party:null, gm:null, wind:null, env:null, log:[], sel:null, seq:0};
+let mapMode = "elev";
+let tool = "select", measureA = null, hover = null;
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const $ = id => document.getElementById(id);
+
+// ---------- 로딩 ----------
+Promise.all([
+  fetch("data/tiles.json").then(r => r.json()),
+  fetch("data/markers.json").then(r => r.json()).catch(() => []),
+  new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = "data/map.png"; })
+]).then(([t, mk]) => {
+  T = t; S = T.scale;
+  const saved = loadLocal();
+  state.markers = (saved && saved.markers) || mk;
+  if (saved) { state.party = saved.party; state.gm = saved.gm || null; state.wind = saved.wind || null; state.env = saved.env || null; state.log = saved.log || []; state.seq = saved.seq || 0; }
+  if (!state.wind) rollWind(true);
+  buildTerrain(); initUI(); applyEnv(state.env); fit(); redraw(); renderLog(); renderMarkers(); showGM(); syncZoom(); syncWind();
+  $("hud").textContent = "클릭: 칸 선택";
+}).catch(e => { $("hud").textContent = "데이터를 불러오지 못했습니다 (로컬 파일로 열면 막힐 수 있음 — 간단한 웹서버로 실행하세요): " + e; });
+
+function loadLocal() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
+function saveLocal() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({markers:state.markers, party:state.party, gm:state.gm, wind:state.wind, env:{w:$("vweather").selectedIndex, t:$("vtime").selectedIndex}, log:state.log, seq:state.seq})); } catch (e) {} }
+
+// ---------- 지형맵(타일 색) ----------
+const CLS_COL = ["#a9cde8","#3a86c8","#d9c27a","#2f6b4f","#8fb8cc","#8bbf6a","#b8aec9","#e2a58f","#56d4e8"];
+let terrainCv = null;
+function buildTerrain() {
+  terrainCv = document.createElement("canvas"); terrainCv.width = T.nx; terrainCv.height = T.ny;
+  const c = terrainCv.getContext("2d"), id = c.createImageData(T.nx, T.ny);
+  const rgb = CLS_COL.map(h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]);
+  for (let y = 0; y < T.ny; y++) for (let x = 0; x < T.nx; x++) {
+    const col = rgb[+T.cls[y * T.nx + x]], o = ((T.ny - 1 - y) * T.nx + x) * 4;
+    id.data[o] = col[0]; id.data[o+1] = col[1]; id.data[o+2] = col[2]; id.data[o+3] = 255;
+  }
+  c.putImageData(id, 0, 0);
+  $("legend").innerHTML = T.classes.map((n, i) => `<span style="display:inline-block;margin:2px 10px 2px 0"><span class="dot" style="background:${CLS_COL[i]}"></span>${n}</span>`).join("");
+}
+
+// ---------- 시야 (고도 가림 + 지형 감쇠 + 경사 보정 + 날씨·시간대) ----------
+let Em = null;                                   // 고도 격자 (상대값 0~35, 가볍게 블러)
+let visMask = null, visList = [], visDirty = true, visStats = null;
+const CLS_COST = [0.7, 0.7, 1.0, 2.5, 0.8, 2.5, 0.8, 0.7, 1.0];   // 바다·호수·스텝·타이가·피오르·냉대림·고산·갯벌·강: km당 시야 소모
+function buildElev() {
+  const nx = T.nx, ny = T.ny, a = new Float32Array(nx * ny);
+  for (let i = 0; i < a.length; i++) a[i] = parseInt(T.elev[i], 36);
+  Em = new Float32Array(a.length);
+  for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++) {
+    let sum = 0, n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && xx < nx && yy >= 0 && yy < ny) { sum += a[yy * nx + xx]; n++; } }
+    Em[y * nx + x] = sum / n;
+  }
+}
+function hAt(xkm, ykm, mpu) {                      // 쌍선형 보간 고도(m). 타일 중심 = (i+0.5)*5 km
+  const fx = xkm / 5 - 0.5, fy = ykm / 5 - 0.5, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0, nx = T.nx;
+  const g = (x, y) => Em[Math.min(T.ny - 1, Math.max(0, y)) * nx + Math.min(nx - 1, Math.max(0, x))];
+  return ((g(x0, y0) * (1 - tx) + g(x0 + 1, y0) * tx) * (1 - ty) + (g(x0, y0 + 1) * (1 - tx) + g(x0 + 1, y0 + 1) * tx) * ty) * mpu;
+}
+function computeVis() {
+  visDirty = false; visList = []; visStats = null;
+  if (!state.gm) return;
+  if (!Em) buildElev();
+  const nx = T.nx, ny = T.ny; visMask = new Uint8Array(nx * ny);
+  const V0 = (+$("v0").value || 20) * (+$("vweather").value) * (+$("vtime").value), eye = +$("veye").value || 0, tgt = +$("vtgt").value || 0,
+        mpu = (+$("vhmax").value || 3000) / 35, kS = +$("vk").value || 0, REFF = 7.3e6, RMAX = 150, N = 720;
+  const gx = (state.gm.x + 0.5) * 5, gy = (state.gm.y + 0.5) * 5, Eg = hAt(gx, gy, mpu), Eo = Eg + eye;
+  let best = 0, worst = 1e9, bestDir = 0, worstDir = 0;
+  for (let r = 0; r < N; r++) {
+    const th = r / N * Math.PI * 2, ux = Math.sin(th), uy = Math.cos(th);            // 0 = 북, 시계방향
+    const g5 = (hAt(gx + ux * 5, gy + uy * 5, mpu) - Eg) / 5000;                      // 앞 5 km 평균 경사
+    const f = Math.min(2, Math.max(0.4, Math.exp(-kS * g5)));                        // 오르막 → 짧게, 내리막 → 길게
+    const Vr = V0 * f; let deff = 0, maxSlope = -Infinity, far = 0;
+    for (let sk = 0.5; sk <= RMAX; sk += 0.5) {
+      const x = gx + ux * sk, y = gy + uy * sk, tx = Math.floor(x / 5), ty = Math.floor(y / 5);
+      if (tx < 0 || tx >= nx || ty < 0 || ty >= ny) break;
+      deff += 0.5 * CLS_COST[+T.cls[ty * nx + tx]]; if (deff > Vr) break;
+      const sm = sk * 1000, drop = sm * sm / (2 * REFF), h = hAt(x, y, mpu) - drop;
+      const slopeT = (h + tgt - Eo) / sm, slopeG = (h - Eo) / sm;
+      if (slopeT >= maxSlope - 1e-9) { const id = ty * nx + tx; if (!visMask[id]) { visMask[id] = 1; visList.push(id); } far = sk; }
+      if (slopeG > maxSlope) maxSlope = slopeG;
+    }
+    if (far > best) { best = far; bestDir = r / N * 360; } if (far < worst) { worst = far; worstDir = r / N * 360; }
+  }
+  const gid = state.gm.y * nx + state.gm.x; if (!visMask[gid]) { visMask[gid] = 1; visList.push(gid); }
+  visStats = {n: visList.length, area: visList.length * 25, best, bestDir, worst, worstDir, Veff: V0};
+}
+function showVis() {
+  const st = visStats;
+  $("vInfo").innerHTML = !state.gm ? "진행자 위치를 지정하세요." : !st ? "‘시야 범위 표시’를 켜세요." :
+    `보이는 칸 <b>${st.n}</b>개 (약 ${st.area.toLocaleString()} km²)<br>실효 기본 시야 ${st.Veff.toFixed(1)} km<br>가장 먼 방향 <b>${st.best.toFixed(0)} km</b> (${compassName(st.bestDir)}) · 가장 짧은 방향 <b>${st.worst.toFixed(0)} km</b> (${compassName(st.worstDir)})`;
+}
+function drawVis(ts) {
+  if (!$("vshow").checked || !state.gm) return;
+  if (visDirty) { computeVis(); showVis(); if (state.sel) showInfo(); }
+  if (!visList.length) return;
+  ctx.fillStyle = "rgba(250,204,21,.38)"; const nx = T.nx, pad = ts < 3 ? 0.6 : 0;
+  for (const id of visList) { const x = id % nx, y = (id - x) / nx; ctx.fillRect(view.x + x * ts - pad / 2, view.y + (T.ny - 1 - y) * ts - pad / 2, ts + pad, ts + pad); }
+}
+const markVisDirty = () => { visDirty = true; redraw(); };
+
+// ---------- 바람 / 냄새 ----------
+const COMPASS = ["북","북북동","북동","동북동","동","동남동","남동","남남동","남","남남서","남서","서남서","서","서북서","북서","북북서"];
+const compassName = d => COMPASS[Math.round((((d % 360) + 360) % 360) / 22.5) % 16];
+function rollWind(silent) {
+  state.wind = {from: Math.floor(rand() * 360), speed: Math.round((0.5 + rand() * 11.5) * 2) / 2};
+  if (!silent) { syncWind(); logEvt(`🌬 바람 ${compassName(state.wind.from)}풍 (${state.wind.from}°에서 불어옴) ${state.wind.speed} m/s`); redraw(); }
+}
+function smellGeom() {          // 진행자 기준 타원 기하(km): 초점 = 진행자
+  const w = state.wind, a = Math.max(1, +$("skm").value || 30), e = Math.min(0.9, w.speed / 20);
+  const th = w.from * Math.PI / 180, ux = Math.sin(th), uy = Math.cos(th);   // 지도상 불어오는 쪽 단위벡터 (동 +x, 북 +y)
+  return {a, e, b: a * Math.sqrt(1 - e * e), c: a * e, ux, uy, up: a * (1 + e), down: a * (1 - e)};
+}
+function inSmell(x, y) {
+  if (!state.gm || !state.wind) return null;
+  const g = smellGeom(), dx = (x - state.gm.x) * 5, dy = (y - state.gm.y) * 5;
+  const u = dx * g.ux + dy * g.uy, v = -dx * g.uy + dy * g.ux;
+  return ((u - g.c) / g.a) ** 2 + (v / g.b) ** 2 <= 1;
+}
+function applyEnv(e) { if (!e) return; $("vweather").selectedIndex = e.w || 0; $("vtime").selectedIndex = e.t || 0; visDirty = true; }
+function envNames() { return [$("vweather").selectedOptions[0].text, $("vtime").selectedOptions[0].text]; }
+function syncWind() {
+  const w = state.wind; if (!w) return;
+  $("wdir").value = w.from; $("wspd").value = w.speed;
+  const g = smellGeom();
+  $("wInfo").innerHTML = `<b>${compassName(w.from)}풍</b> (${w.from}°에서 불어옴) · ${w.speed} m/s<br>이심률 ${g.e.toFixed(2)} · 바람 쪽 <b>${g.up.toFixed(0)} km</b> / 반대쪽 <b>${g.down.toFixed(0)} km</b> / 옆 ${g.b.toFixed(0)} km`;
+}
+function syncWindInfoOnly() { const w = state.wind, g = smellGeom(); $("wInfo").innerHTML = `<b>${compassName(w.from)}풍</b> (${w.from}°에서 불어옴) · ${w.speed} m/s<br>이심률 ${g.e.toFixed(2)} · 바람 쪽 <b>${g.up.toFixed(0)} km</b> / 반대쪽 <b>${g.down.toFixed(0)} km</b> / 옆 ${g.b.toFixed(0)} km`; }
+function drawSmell(ts) {
+  const g = smellGeom(), p = tileCenterScreen(state.gm.x, state.gm.y), k = ts / 5;       // km → px
+  const cx = p.px + g.ux * g.c * k, cy = p.py - g.uy * g.c * k, rot = Math.atan2(-g.uy, g.ux);
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(cx, cy, g.a * k, g.b * k, rot, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(34,197,94,.13)"; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#16a34a"; ctx.stroke();
+  ctx.restore();
+}
+function drawWindArrow() {       // 화면 좌상단: 바람이 향하는 쪽 화살표
+  if (!state.wind) return;
+  const w = state.wind, to = (w.from + 180) * Math.PI / 180, cx = 60, cy = 62, L = 18 + Math.min(w.speed, 14) * 2.2;
+  const ex = cx + Math.sin(to) * L, ey = cy - Math.cos(to) * L, sx = cx - Math.sin(to) * L, sy = cy + Math.cos(to) * L;
+  ctx.save(); ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.beginPath(); ctx.roundRect(8, 8, 280, 134, 10); ctx.fill();
+  ctx.strokeStyle = "#7dd3fc"; ctx.fillStyle = "#7dd3fc"; ctx.lineWidth = 4; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+  const ang = Math.atan2(ey - sy, ex - sx); ctx.beginPath(); ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - 13 * Math.cos(ang - 0.45), ey - 13 * Math.sin(ang - 0.45)); ctx.lineTo(ex - 13 * Math.cos(ang + 0.45), ey - 13 * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif"; ctx.fillText("N", 54, 22);
+  ctx.font = "bold 15px sans-serif"; ctx.fillText(compassName(w.from) + "풍", 118, 44); ctx.font = "14px sans-serif"; ctx.fillText(w.speed + " m/s", 118, 66); ctx.fillText(w.from + "°에서 불어옴", 118, 88);
+  const [wn, tn] = envNames(); ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(18, 104); ctx.lineTo(278, 104); ctx.stroke();
+  ctx.fillStyle = "#fde68a"; ctx.font = "bold 16px sans-serif"; ctx.fillText("날씨 " + wn, 18, 126); ctx.fillStyle = "#c4b5fd"; ctx.fillText("시간대 " + tn, 118, 126);
+  ctx.restore();
+}
+
+// ---------- 좌표 ----------
+const tileAt = (px, py) => {            // 화면좌표 → 타일 (x, y: y는 남쪽 0)
+  const ix = (px - view.x) / view.k, iy = (py - view.y) / view.k;
+  const x = Math.floor(ix / S), yTop = Math.floor(iy / S);
+  const y = T.ny - 1 - yTop;
+  return (x >= 0 && x < T.nx && y >= 0 && y < T.ny) ? {x, y} : null;
+};
+const tileCenterScreen = (x, y) => ({ px: (x + 0.5) * S * view.k + view.x, py: (T.ny - 1 - y + 0.5) * S * view.k + view.y });
+const cls = (x, y) => +T.cls[y * T.nx + x];
+const elev = (x, y) => parseInt(T.elev[y * T.nx + x], 36);
+
+// ---------- 화면 ----------
+function resize() { const r = cv.parentElement.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); redraw(); }
+function fit() { const r = cv.parentElement.getBoundingClientRect(); view.k = Math.min(r.width / img.width, r.height / img.height) * 0.98; view.x = (r.width - img.width*view.k)/2; view.y = (r.height - img.height*view.k)/2; }
+function redraw() {
+  if (!T) return;
+  const W = cv.width / devicePixelRatio, H = cv.height / devicePixelRatio;
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = "#0d1116"; ctx.fillRect(0, 0, W, H);
+  if (mapMode === "terrain") { ctx.imageSmoothingEnabled = false; ctx.drawImage(terrainCv, view.x, view.y, img.width * view.k, img.height * view.k); }
+  else { ctx.imageSmoothingEnabled = view.k < 3; ctx.drawImage(img, view.x, view.y, img.width * view.k, img.height * view.k); }
+  const ts = S * view.k;                                   // 타일 한 칸의 화면 크기
+  if ($("gshow").checked && ts >= 9) {                      // 격자
+    ctx.strokeStyle = "rgba(0,0,0,.22)"; ctx.lineWidth = 1; ctx.beginPath();
+    const x0 = Math.max(0, Math.floor(-view.x / ts)), x1 = Math.min(T.nx, Math.ceil((W - view.x) / ts));
+    const y0 = Math.max(0, Math.floor(-view.y / ts)), y1 = Math.min(T.ny, Math.ceil((H - view.y) / ts));
+    for (let i = x0; i <= x1; i++) { ctx.moveTo(view.x + i*ts, view.y + y0*ts); ctx.lineTo(view.x + i*ts, view.y + y1*ts); }
+    for (let j = y0; j <= y1; j++) { ctx.moveTo(view.x + x0*ts, view.y + j*ts); ctx.lineTo(view.x + x1*ts, view.y + j*ts); }
+    ctx.stroke();
+  }
+  if ($("mshow").checked) for (const m of state.markers) drawMarker(m, ts);
+  drawVis(ts);
+  if (state.gm && state.wind && $("sshow").checked) drawSmell(ts);
+  if (state.gm && $("rshow").checked) drawRadius(ts);
+  if (state.party) drawParty(ts);
+  if (state.gm) drawGM(ts);
+  if (state.sel) outline(state.sel.x, state.sel.y, ts, "#4da3ff", 2.5);
+  if (hover && (!state.sel || hover.x !== state.sel.x || hover.y !== state.sel.y)) outline(hover.x, hover.y, ts, "#ffffff88", 1.5);
+  drawWindArrow();
+  if (tool === "measure" && measureA) {
+    const a = tileCenterScreen(measureA.x, measureA.y); ctx.strokeStyle = "#ffd24d"; ctx.lineWidth = 2; ctx.setLineDash([8,6]);
+    const b = hover ? tileCenterScreen(hover.x, hover.y) : a; ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (state.party && state.sel) {   // 파티→선택 칸 선
+    const a = tileCenterScreen(state.party.x, state.party.y), b = tileCenterScreen(state.sel.x, state.sel.y);
+    ctx.strokeStyle = "#ffffff77"; ctx.lineWidth = 1.5; ctx.setLineDash([4,5]); ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+function outline(x, y, ts, col, lw) { const p = tileCenterScreen(x, y), s = Math.max(ts, 8); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.strokeRect(p.px - s/2, p.py - s/2, s, s); }
+function drawMarker(m, ts) {
+  const p = tileCenterScreen(m.x, m.y), r = Math.max(4, Math.min(ts * 0.45, 12));
+  ctx.beginPath(); ctx.arc(p.px, p.py, r, 0, 7); ctx.fillStyle = (TYPES[m.type] || ["?", "#f0f"])[1]; ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = "#000"; ctx.stroke();
+  if (ts >= 20 && m.desc) { ctx.font = "bold 14px sans-serif"; ctx.lineWidth = 4; ctx.strokeStyle = "#000"; ctx.fillStyle = "#fff"; const t = m.desc.slice(0, 14); ctx.strokeText(t, p.px + r + 3, p.py + 5); ctx.fillText(t, p.px + r + 3, p.py + 5); }
+}
+function drawGM(ts) {           // 진행자 위치: 1타일 크기 칸 + 붉은 X
+  const p = tileCenterScreen(state.gm.x, state.gm.y), s = Math.max(ts, 9), h = s / 2;
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillRect(p.px - h, p.py - h, s, s);
+  ctx.strokeStyle = "#e11d1d"; ctx.lineWidth = Math.max(1.5, s * 0.14); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(p.px - h * 0.8, p.py - h * 0.8); ctx.lineTo(p.px + h * 0.8, p.py + h * 0.8);
+  ctx.moveTo(p.px + h * 0.8, p.py - h * 0.8); ctx.lineTo(p.px - h * 0.8, p.py + h * 0.8); ctx.stroke(); ctx.lineCap = "butt";
+  ctx.lineWidth = 1; ctx.strokeStyle = "#000"; ctx.strokeRect(p.px - h, p.py - h, s, s);
+}
+function drawRadius(ts) {       // 진행자 주변 반경 원 (거리 단위 km, 1타일=5km)
+  const p = tileCenterScreen(state.gm.x, state.gm.y);
+  const R = Math.max(5, +$("rkm").value || 0), step = Math.max(0, +$("rstep").value || 0);
+  const radii = []; if (step > 0) { for (let r = step; r < R; r += step) radii.push(r); } radii.push(R);
+  ctx.save(); ctx.font = "bold 15px sans-serif";
+  radii.forEach((r, i) => {
+    const px = r / 5 * ts, outer = i === radii.length - 1;
+    ctx.beginPath(); ctx.arc(p.px, p.py, px, 0, Math.PI * 2);
+    if (outer) { ctx.fillStyle = "rgba(225,29,29,.10)"; ctx.fill(); }
+    ctx.lineWidth = outer ? 2.5 : 1.5; ctx.strokeStyle = outer ? "#e11d1d" : "rgba(225,29,29,.75)"; ctx.setLineDash(outer ? [] : [6, 5]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth = 4; ctx.strokeStyle = "#000"; ctx.fillStyle = "#fff";
+    const t = r + " km"; ctx.strokeText(t, p.px + 6, p.py - px - 4); ctx.fillText(t, p.px + 6, p.py - px - 4);
+  });
+  ctx.restore();
+}
+function drawParty(ts) {
+  const p = tileCenterScreen(state.party.x, state.party.y), r = Math.max(7, Math.min(ts * 0.6, 16));
+  ctx.beginPath(); ctx.moveTo(p.px, p.py - r); ctx.lineTo(p.px + r, p.py + r*0.8); ctx.lineTo(p.px - r, p.py + r*0.8); ctx.closePath();
+  ctx.fillStyle = "#22d3ee"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "#000"; ctx.stroke();
+}
+
+// ---------- 입력(드래그·줌·클릭) ----------
+let drag = null; const pts = new Map(); let pinch0 = null;
+cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, {x:e.offsetX, y:e.offsetY}); drag = {sx:e.offsetX, sy:e.offsetY, vx:view.x, vy:view.y, moved:false}; if (pts.size === 2) pinch0 = null; });
+cv.addEventListener("pointermove", e => {
+  if (pts.has(e.pointerId)) pts.set(e.pointerId, {x:e.offsetX, y:e.offsetY});
+  if (pts.size === 2) {                                     // 핀치 줌
+    const [a, b] = [...pts.values()], d = Math.hypot(a.x-b.x, a.y-b.y), c = {x:(a.x+b.x)/2, y:(a.y+b.y)/2};
+    if (pinch0) zoomAt(c.x, c.y, d / pinch0); pinch0 = d; if (drag) drag.moved = true; return;
+  }
+  if (drag && pts.size === 1) { const dx = e.offsetX - drag.sx, dy = e.offsetY - drag.sy; if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true; if (drag.moved) { view.x = drag.vx + dx; view.y = drag.vy + dy; redraw(); } }
+  hover = tileAt(e.offsetX, e.offsetY); updateHud(); if (!drag || !drag.moved) redraw();
+});
+cv.addEventListener("pointerup", e => { pts.delete(e.pointerId); pinch0 = null; if (drag && !drag.moved && pts.size === 0) clickAt(e.offsetX, e.offsetY); if (pts.size === 0) drag = null; });
+cv.addEventListener("pointerleave", () => { hover = null; redraw(); });
+cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, {passive:false});
+function zoomAt(px, py, f) { const k2 = Math.min(40, Math.max(0.15, view.k * f)); f = k2 / view.k; view.x = px - (px - view.x) * f; view.y = py - (py - view.y) * f; view.k = k2; redraw(); syncZoom(); }
+const ZOOMS = [["맞춤", 0], ["0.5×", 0.5], ["1×", 1], ["2×", 2], ["4×", 4], ["8×", 8], ["16×", 16]];   // 1× = 한 칸 4px
+function setZoom(k) {                       // 화면 중앙(또는 선택 칸) 기준으로 배율 지정
+  const r = cv.parentElement.getBoundingClientRect();
+  if (k === 0) { fit(); redraw(); syncZoom(); return; }
+  let cx = r.width / 2, cy = r.height / 2; if (state.sel) { const c = tileCenterScreen(state.sel.x, state.sel.y); if (c.px > 0 && c.px < r.width && c.py > 0 && c.py < r.height) { cx = c.px; cy = c.py; } }
+  zoomAt(cx, cy, k / view.k);
+}
+function syncZoom() {
+  const fitK = Math.min(cv.parentElement.getBoundingClientRect().width / img.width, cv.parentElement.getBoundingClientRect().height / img.height) * 0.98;
+  document.querySelectorAll("#zoomBtns button").forEach(b => { const z = +b.dataset.z; b.classList.toggle("on", z === 0 ? Math.abs(view.k - fitK) < 1e-3 : Math.abs(view.k - z) < 1e-3); });
+  $("zinfo").textContent = `현재 ${view.k.toFixed(2)}× · 한 칸 ≈ ${(S * view.k).toFixed(1)} px`;
+}
+function updateHud() { if (!hover) return; $("hud").textContent = `(${hover.x}, ${hover.y}) · ${T.classes[cls(hover.x, hover.y)]}`; }
+
+function clickAt(px, py) {
+  const t = tileAt(px, py); if (!t) return;
+  if (tool === "gm") { visDirty = true; state.gm = t; logEvt(`진행자 위치 → (${t.x}, ${t.y}) ${T.classes[cls(t.x, t.y)]}`); showGM(); }
+  else if (tool === "party") { state.party = t; logEvt(`파티 이동 → (${t.x}, ${t.y}) ${T.classes[cls(t.x, t.y)]}`); }
+  else if (tool === "measure") { if (!measureA) { measureA = t; showDist(null); } else { showDist(measureA, t); measureA = null; } }
+  state.sel = t; showInfo(); redraw(); saveLocal();
+}
+
+// ---------- 정보 ----------
+function showInfo() {
+  const t = state.sel; if (!t) return;
+  const c = cls(t.x, t.y), e = elev(t.x, t.y), here = state.markers.filter(m => m.x === t.x && m.y === t.y);
+  let h = `<b>(${t.x}, ${t.y})</b> <span class="tag">${t.x*5}~${t.x*5+5} km, ${t.y*5}~${t.y*5+5} km</span><br>지형: <b>${T.classes[c]}</b> · 상대 고도 ${e}/35`;
+  if (state.party) { const d = Math.hypot(t.x - state.party.x, t.y - state.party.y) * 5; h += `<br>파티까지 직선 약 <b>${d.toFixed(0)} km</b>`; }
+  if (state.gm) { const d = Math.hypot(t.x - state.gm.x, t.y - state.gm.y) * 5, R = +$("rkm").value || 0; h += `<br>진행자 위치까지 <b>${d.toFixed(0)} km</b>` + ($("rshow").checked ? (d <= R ? " (반경 안)" : " (반경 밖)") : ""); }
+  if (state.gm && $("vshow").checked && visMask) h += `<br>시야: <b>${visMask[t.y * T.nx + t.x] ? "보임" : "안 보임"}</b>`;
+  if (state.gm && $("sshow").checked) h += `<br>냄새 탐지: <b>${inSmell(t.x, t.y) ? "범위 안" : "범위 밖"}</b>`;
+  for (const m of here) h += `<br><span class="dot" style="background:${TYPES[m.type][1]}"></span>[${m.type}종 ${TYPES[m.type][0]}] ${esc(m.desc)}`;
+  $("info").innerHTML = h;
+}
+function showGM() {
+  const g = state.gm; $("gminfo").innerHTML = g ? `진행자 위치 <b>(${g.x}, ${g.y})</b> · ${T.classes[cls(g.x, g.y)]} <span class="tag">${g.x*5}~${g.x*5+5} km, ${g.y*5}~${g.y*5+5} km</span>` : "‘진행자 위치’ 도구로 칸을 클릭해 지정합니다.";
+  if (state.sel) showInfo();
+}
+function showDist(a, b) {
+  const box = $("dist"); box.style.display = "block";
+  if (!a) { box.textContent = "끝점을 클릭하세요."; return; }
+  const d = Math.hypot(b.x - a.x, b.y - a.y) * 5;
+  box.innerHTML = `(${a.x}, ${a.y}) → (${b.x}, ${b.y}): 직선 <b>${d.toFixed(0)} km</b> (${Math.abs(b.x-a.x)*5} km 동서, ${Math.abs(b.y-a.y)*5} km 남북)`;
+  logEvt(`거리 측정 (${a.x},${a.y})→(${b.x},${b.y}) = ${d.toFixed(0)} km`);
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ---------- 주사위 ----------
+function rollExpr(src) {
+  const s = src.replace(/\s+/g, "").toLowerCase();
+  const m = s.match(/^(\d*)d(\d+)(?:k(\d+))?([+-]\d+)?$/);
+  if (!m) return null;
+  const n = Math.min(+(m[1] || 1), 200), f = +m[2], keep = m[3] ? +m[3] : null, bonus = m[4] ? +m[4] : 0;
+  if (f < 2 || n < 1) return null;
+  const rs = Array.from({length: n}, () => 1 + Math.floor(rand() * f));
+  let used = rs.slice(); if (keep) used = rs.slice().sort((a, b) => b - a).slice(0, keep);
+  const sum = used.reduce((a, b) => a + b, 0) + bonus;
+  return {sum, rs, bonus, text: `${rs.join(", ")}${keep ? ` (상위 ${keep}개: ${used.join("+")})` : ""}${bonus ? ` ${bonus > 0 ? "+" : ""}${bonus}` : ""}`};
+}
+function rand() { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] / 4294967296; }
+function doRoll(src) {
+  const r = rollExpr(src); if (!r) { $("rollDetail").textContent = "식을 알아볼 수 없습니다. 예: 2d6+1, d20, 4d6k3"; return; }
+  $("rollRes").textContent = r.sum; $("rollDetail").textContent = `${src} → ${r.text}`;
+  logEvt(`🎲 ${src} = <b>${r.sum}</b> <span class="tag">[${r.text}]</span>`);
+}
+
+// ---------- 마커 ----------
+function renderMarkers() {
+  $("mlist").innerHTML = state.markers.length ? state.markers.map((m, i) =>
+    `<div class="m" data-i="${i}"><span><span class="dot" style="background:${TYPES[m.type][1]}"></span>${esc(m.desc || "(설명 없음)")}</span><span class="tag">(${m.x},${m.y})</span></div>`).join("") : '<span class="dim">마커 없음</span>';
+  document.querySelectorAll("#mlist .m").forEach(el => el.onclick = () => { const m = state.markers[+el.dataset.i]; centerOn(m.x, m.y); state.sel = {x:m.x, y:m.y}; showInfo(); redraw(); });
+}
+function centerOn(x, y) { const r = cv.parentElement.getBoundingClientRect(); const ix = (x + 0.5) * S, iy = (T.ny - 1 - y + 0.5) * S; view.k = Math.max(view.k, 6); view.x = r.width / 2 - ix * view.k; view.y = r.height / 2 - iy * view.k; }
+
+// ---------- 기록 ----------
+function logEvt(html) { state.log.push({n: ++state.seq, html}); if (state.log.length > 500) state.log.shift(); renderLog(); saveLocal(); }
+function renderLog() { const el = $("log"); el.innerHTML = state.log.map(l => `<div><span class="tag">#${l.n}</span> ${l.html}</div>`).join(""); el.scrollTop = el.scrollHeight; }
+
+// ---------- UI 초기화 ----------
+function initUI() {
+  document.querySelectorAll("#modeBtns button").forEach(b => b.onclick = () => { mapMode = b.dataset.m; document.querySelectorAll("#modeBtns button").forEach(x => x.classList.toggle("on", x === b)); $("legend").style.display = mapMode === "terrain" ? "block" : "none"; redraw(); });
+  ["vshow","v0","veye","vtgt","vhmax","vk","vweather","vtime"].forEach(id => { $(id).oninput = $(id).onchange = markVisDirty; });
+  $("sshow").onchange = () => { redraw(); if (state.sel) showInfo(); };
+  $("skm").oninput = () => { syncWind(); redraw(); if (state.sel) showInfo(); };
+  $("wdir").oninput = $("wspd").oninput = () => { state.wind = {from: ((+$("wdir").value || 0) % 360 + 360) % 360, speed: Math.max(0, +$("wspd").value || 0)}; syncWindInfoOnly(); redraw(); saveLocal(); if (state.sel) showInfo(); };
+  $("wRoll").onclick = () => rollWind(false);
+  $("vweather").addEventListener("change", () => { saveLocal(); logEvt(`환경: 날씨 ${envNames()[0]}`); });
+  $("vtime").addEventListener("change", () => { saveLocal(); logEvt(`환경: 시간대 ${envNames()[1]}`); });
+  $("envRoll").onclick = () => { $("vweather").selectedIndex = Math.floor(rand() * 4); $("vtime").selectedIndex = Math.floor(rand() * 3); rollWind(true); syncWind(); visDirty = true; const [w, t] = envNames(); logEvt(`🌦 환경: ${w} · ${t} · ${compassName(state.wind.from)}풍 ${state.wind.speed} m/s`); saveLocal(); redraw(); };
+  $("zoomBtns").innerHTML = ZOOMS.map(([n, z]) => `<button data-z="${z}">${n}</button>`).join("");
+  document.querySelectorAll("#zoomBtns button").forEach(b => b.onclick = () => setZoom(+b.dataset.z));
+  $("zIn").onclick = () => { const r = cv.parentElement.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.5); };
+  $("zOut").onclick = () => { const r = cv.parentElement.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / 1.5); };
+  $("gmGo").onclick = () => { if (state.gm) { centerOn(state.gm.x, state.gm.y); redraw(); syncZoom(); } };
+  $("rshow").onchange = $("rkm").oninput = $("rstep").oninput = () => { redraw(); if (state.sel) showInfo(); };
+  $("mtype").innerHTML = Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${k}종 ${v[0]}</option>`).join("");
+  $("dice").innerHTML = [4, 6, 8, 10, 12, 20, 100].map(n => `<button data-d="${n}">d${n}</button>`).join("");
+  document.querySelectorAll("#dice button").forEach(b => b.onclick = () => { $("expr").value = "d" + b.dataset.d; doRoll("d" + b.dataset.d); });
+  $("rollBtn").onclick = () => doRoll($("expr").value); $("expr").onkeydown = e => { if (e.key === "Enter") doRoll($("expr").value); };
+  const hints = {gm:"클릭한 칸을 진행자 위치로 지정합니다 (붉은 X).", select:"클릭한 칸의 정보를 봅니다.", party:"클릭한 칸으로 파티 말을 옮깁니다.", measure:"두 칸을 차례로 클릭하면 직선거리를 잽니다."};
+  document.querySelectorAll("#tools button").forEach(b => b.onclick = () => { tool = b.dataset.t; measureA = null; document.querySelectorAll("#tools button").forEach(x => x.classList.toggle("on", x === b)); $("toolhint").textContent = hints[tool] + " 드래그=이동, 휠/핀치=확대."; redraw(); });
+  $("mAdd").onclick = () => { if (!state.sel) return; const m = {type:+$("mtype").value, x:state.sel.x, y:state.sel.y, desc:$("mdesc").value.trim()}; state.markers.push(m); $("mdesc").value = ""; logEvt(`마커 추가 [${TYPES[m.type][0]}] (${m.x},${m.y}) ${esc(m.desc)}`); renderMarkers(); showInfo(); redraw(); };
+  $("mDel").onclick = () => { if (!state.sel) return; const n = state.markers.length; state.markers = state.markers.filter(m => !(m.x === state.sel.x && m.y === state.sel.y)); if (n !== state.markers.length) logEvt(`마커 삭제 (${state.sel.x},${state.sel.y})`); renderMarkers(); showInfo(); redraw(); };
+  $("mshow").onchange = $("gshow").onchange = redraw;
+  $("rndTile").onclick = () => { for (let i = 0; i < 2000; i++) { const x = Math.floor(rand() * T.nx), y = Math.floor(rand() * T.ny), c = cls(x, y); if (c !== 0 && c !== 1) { state.sel = {x, y}; centerOn(x, y); logEvt(`무작위 칸: (${x},${y}) ${T.classes[c]}`); showInfo(); redraw(); return; } } };
+  $("rndDir").onclick = () => { const d = ["북","북동","동","남동","남","남서","서","북서"]; const r = d[Math.floor(rand() * 8)]; $("rollRes").textContent = r; $("rollDetail").textContent = "무작위 방향"; logEvt(`🧭 방향: <b>${r}</b>`); };
+  $("saveBtn").onclick = () => { const blob = new Blob([JSON.stringify({markers:state.markers, party:state.party, gm:state.gm, wind:state.wind, env:{w:$("vweather").selectedIndex, t:$("vtime").selectedIndex}, log:state.log, seq:state.seq}, null, 1)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "session.json"; a.click(); };
+  $("loadBtn").onclick = () => $("file").click();
+  $("file").onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const d = JSON.parse(await f.text()); state.markers = d.markers || []; state.party = d.party || null; state.gm = d.gm || null; state.wind = d.wind || state.wind; state.log = d.log || []; state.seq = d.seq || 0; visDirty = true; renderMarkers(); renderLog(); showGM(); syncWind(); applyEnv(d.env); redraw(); saveLocal(); } catch (err) { alert("불러오기 실패: " + err); } e.target.value = ""; };
+  $("clearLog").onclick = () => { state.log = []; renderLog(); saveLocal(); };
+  addEventListener("resize", resize); resize();
+}
+</script>
+</body>
+</html>
