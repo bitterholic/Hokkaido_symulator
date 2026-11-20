@@ -70,19 +70,15 @@
     <div class="dim" id="toolhint">클릭한 칸의 정보를 봅니다. 드래그=지도 이동, 휠/핀치=확대.</div>
     <div class="card gm-only" id="moveBox" style="margin-top:6px;display:none">
       <div id="moveInfo"></div>
-      <div class="row"><button id="moveOk" style="font-weight:700">이동 확인</button><button id="moveCancel">선택 취소</button></div>
-      <div class="row" id="startSetRow"><button id="startSet">이 칸을 시작 지점으로 고정</button></div>
+      <div class="row"><button id="moveOk" style="font-weight:700">이동 확인</button></div>
     </div>
-    <div class="row gm-only"><span class="dim" id="startInfo"></span><button id="startReset">시작 지점 해제</button></div>
     <div class="row gm-only"><button id="turnPass">턴 넘기기 (+15분)</button><span class="dim" id="turnInfo"></span></div>
+    <div class="row gm-only"><button id="undoBtn">마지막 행동 취소</button><span class="dim" id="undoInfo"></span></div>
     <div class="card" id="dist" style="margin-top:6px;display:none"></div>
 
     <div class="gm-only secret">
-    <h2>탐험 (안개)</h2>
-    <div class="dim">마스터 지도는 전부 보입니다. 파티가 이동·턴을 넘길 때마다 그 순간의 시야 범위가 ‘탐색한 칸’으로 기록되고, 파티용 지도에는 그 칸만 보입니다.</div>
-    <div class="row"><label><input type="checkbox" id="fogDim"> 파티가 아직 못 본 곳을 어둡게 표시</label></div>
-    <div class="row"><button id="fogReveal">현재 시야 밝히기</button><button id="fogReset">탐색 기록 초기화</button></div>
-    <div class="card" id="fogInfo"></div>
+    <h2>숨은 표지</h2>
+    <div class="dim">‘공개 코드’를 지정해 둔 표식(지은 오두막 등)은 코드를 입력하면 드러납니다.</div>
     <div class="row"><input type="text" id="revCode" placeholder="숨은 표지 코드 입력" style="flex:1;min-width:120px"><button id="revBtn">공개</button></div>
     <div class="dim" id="revMsg"></div>
 
@@ -153,37 +149,30 @@
     </div>
 
     <div class="gm-only secret">
-    <h2>저장 코드 (마스터 전체)</h2>
-    <div class="dim">지금까지의 진행(말 위치·턴·시각·날씨·바람·마커·설정·기록)을 글자 한 줄로 바꿉니다. 이 코드를 다른 사람에게 주면, 같은 사이트에서 붙여넣어 이어서 진행·호스팅할 수 있습니다.</div>
+    <h2>저장 코드 내보내기</h2>
+    <div class="dim">지금까지의 진행(말 위치·턴·시각·날씨·바람·표식·설정·탐색 범위)을 글자 한 줄 코드로 만듭니다. 이 코드 하나를 마스터 화면에서는 전체로, 파티 전용 페이지에서는 보이는 부분만 불러옵니다. 주의: 숨은 표식과 공개 코드도 코드 안에 들어 있어, 파티원이 코드를 직접 풀어 보면 읽을 수 있습니다.</div>
     <div class="row"><label><input type="checkbox" id="codeLog" checked> 기록(로그) 포함</label></div>
-    <textarea id="saveCode" rows="5" spellcheck="false" placeholder="‘코드 만들기’를 누르거나, 받은 코드를 여기에 붙여넣고 ‘코드로 불러오기’를 누르세요." style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all"></textarea>
-    <div class="row"><button id="codeMake">코드 만들기</button><button id="codeCopy">복사</button><button id="codeLoad">코드로 불러오기</button></div>
+    <textarea id="saveCode" rows="5" readonly spellcheck="false" placeholder="‘저장 코드 만들어 복사’를 누르세요." style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all"></textarea>
+    <div class="row"><button id="codeMake" style="font-weight:700">저장 코드 만들어 복사</button><button id="codeSave">.txt 저장</button><button id="pcOpen">파티 화면 열기(새 탭)</button></div>
     <div class="dim" id="codeMsg"></div>
 
-    <h2>기록 텍스트 (읽기 쉬운 내보내기)</h2>
-    <div class="dim">턴·시각·날씨·시작 지점·파티 말·탐색 범위·표식 목록(숨김 포함)을 글로 정리하고, 맨 끝에 이어하기 코드를 붙입니다. 다음에 이 텍스트를 통째로 위 ‘저장 코드’ 칸에 붙여넣고 ‘코드로 불러오기’를 누르면 그대로 재개됩니다. .txt로 저장해 두어도 됩니다.</div>
-    <textarea id="recText" rows="9" readonly spellcheck="false" placeholder="‘기록 텍스트 만들기’를 누르세요." style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px"></textarea>
-    <div class="row"><button id="recMake" style="font-weight:700">기록 텍스트 만들기</button><button id="recCopy">복사</button><button id="recSave">.txt 저장</button></div>
-    <div class="dim" id="recMsg"></div>
-
-
-    <h2>파티용 코드 (공개 정보만)</h2>
-    <div class="dim">파티원에게 보여도 되는 정보만 담습니다: 탐색한 칸, 파티 말 위치, 턴·시각·날씨·바람, 발견된 마커. 숨은 마커·코드·기록·시야 설정은 들어가지 않습니다. 턴이 지나면 새 코드를 만들어 다시 전달하세요.</div>
-    <textarea id="partyCode" rows="4" spellcheck="false" readonly placeholder="‘파티용 코드 만들기’를 누르세요." style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all"></textarea>
-    <div class="row"><button id="pcMake" style="font-weight:700">파티용 코드 만들어 복사</button><button id="pcOpen">파티 화면 열기(새 탭)</button></div>
-    <div class="dim" id="pcMsg"></div>
+    <h2>저장 코드 불러오기</h2>
+    <div class="dim">받은(또는 보관해 둔) 저장 코드를 붙여넣고 ‘불러오기’를 누르면 그 상태로 이어집니다. 예전 기록 텍스트를 통째로 붙여넣어도 됩니다.</div>
+    <textarea id="codeIn" rows="4" spellcheck="false" placeholder="ISL1Z-…" style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all"></textarea>
+    <div class="row"><button id="codeLoad" style="font-weight:700">불러오기</button></div>
+    <div class="dim" id="loadMsg"></div>
     </div>
 
     <div class="pt-only">
-    <h2>파티 코드 불러오기</h2>
-    <div class="dim">마스터에게 받은 코드(ISP1…)를 붙여넣고 ‘불러오기’를 누르면 지도가 갱신됩니다.</div>
-    <textarea id="ptIn" rows="5" spellcheck="false" placeholder="ISP1Z-…" style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all"></textarea>
+    <h2>저장 코드 불러오기</h2>
+    <div class="dim">마스터가 준 저장 코드를 붙여넣고 ‘불러오기’를 누르면, 파티가 본 만큼만 지도에 표시됩니다.</div>
+    <textarea id="ptIn" rows="4" spellcheck="false" placeholder="ISL1Z-…" style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all"></textarea>
     <div class="row"><button id="ptLoad" style="font-weight:700">불러오기</button></div>
     <div class="dim" id="ptMsg"></div>
-    <div class="sub">지금 화면 기록 내보내기</div>
-    <div class="dim">내 화면의 상태(말 위치·탐색 범위·발견한 표식)를 글로 정리하고 끝에 이어하기 코드를 붙입니다. 다음에 이 텍스트를 통째로 위 칸에 붙여넣으면 이어집니다.</div>
-    <textarea id="ptRec" rows="8" readonly spellcheck="false" placeholder="‘기록 텍스트 만들기’를 누르세요." style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px"></textarea>
-    <div class="row"><button id="ptRecMake" style="font-weight:700">기록 텍스트 만들기</button><button id="ptRecCopy">복사</button><button id="ptRecSave">.txt 저장</button></div>
+    <h2>저장 코드 내보내기</h2>
+    <div class="dim">내 화면의 상태(말 위치·탐색 범위·발견한 표식)를 글자 한 줄 코드로 만듭니다. 다음에 위 칸에 붙여넣으면 이어집니다.</div>
+    <textarea id="ptRec" rows="4" readonly spellcheck="false" placeholder="‘저장 코드 만들어 복사’를 누르세요." style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all"></textarea>
+    <div class="row"><button id="ptRecMake" style="font-weight:700">저장 코드 만들어 복사</button><button id="ptRecSave">.txt 저장</button></div>
     <div class="dim" id="ptRecMsg"></div>
     </div>
 
@@ -210,9 +199,10 @@ const SAVE_KEY = LOCKED ? "island-party-v1" : "island-session-v1";
 document.body.classList.toggle("locked", LOCKED); document.body.classList.toggle("pview", viewParty);
 let T = null, img = new Image(), S = 4;
 let view = {x:0, y:0, k:1};                 // 화면 = (이미지좌표*k + x/y)
-let state = {markers:[], party:null, start:null, turn:1, pending:null, wind:null, env:null, log:[], sel:null, seq:0};
+const START = {x: 218, y: 35};          // 시작 지점 (항상 고정)
+let state = {markers:[], party:null, start:START, turn:1, pending:null, wind:null, env:null, log:[], sel:null, seq:0};
 let mapMode = "elev";
-let explored = null, fogCv = null, fogDim = false;      // 탐색한 칸(0/1), 안개 캔버스, (마스터) 미탐색 영역 어둡게
+let explored = null, fogCv = null;      // 탐색한 칸(0/1), 안개 캔버스
 let tool = "select", measureA = null, hover = null;
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const $ = id => document.getElementById(id);
@@ -226,31 +216,33 @@ Promise.all([
   T = t; S = T.scale;
   const saved = loadLocal();
   state.markers = (saved && saved.markers) || mk;
-  if (saved) { state.start = saved.start || null; state.party = saved.gm || saved.party || null; state.turn = saved.turn || 1; state.wind = saved.wind || null; state.env = saved.env || null; state.log = saved.log || []; state.seq = saved.seq || 0; }
+  if (saved) { state.party = saved.gm || saved.party || null; state.turn = saved.turn || 1; state.wind = saved.wind || null; state.env = saved.env || null; state.log = saved.log || []; state.seq = saved.seq || 0; }
   if (!state.wind) rollWind(true);
-  buildTerrain(); initFog(); if (saved && saved.fog) setFogRLE(saved.fog); initUI(); if (saved) applySet(saved.set); applyEnv(state.env); fit(); redraw(); renderLog(); renderMarkers(); showGM(); showMoveUI(); syncWind();
+  buildTerrain(); initFog(); if (saved && saved.fog) setFogRLE(saved.fog); initUI(); if (saved) applySet(saved.set); applyEnv(state.env); markStartExplored(); if (!state.party && !LOCKED) startGame(); fit(); if (!saved && state.party) centerOn(state.party.x, state.party.y); redraw(); renderLog(); renderMarkers(); showGM(); showMoveUI(); syncWind();
   $("hud").textContent = "클릭: 칸 선택";
 }).catch(e => { $("hud").textContent = "데이터를 불러오지 못했습니다 (로컬 파일로 열면 막힐 수 있음 — 간단한 웹서버로 실행하세요): " + e; });
 
 function loadLocal() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
 function getSession(withLog = true) {
   const set = {}; ["rkm","rstep","v0","veye","vtgt","vhmax","vk","skm"].forEach(id => set[id] = +$(id).value);
-  ["rshow","vshow","sshow"].forEach(id => set[id] = $(id).checked ? 1 : 0); set.mode = mapMode; set.dim = fogDim ? 1 : 0;
-  return {game:"island", nx:T.nx, ny:T.ny, fog:fogRLE(), start:state.start, markers:state.markers, party:state.party, turn:state.turn, wind:state.wind, env:{w:$("vweather").selectedIndex, c:clockMin}, set, log:withLog ? state.log : [], seq:state.seq};
+  ["rshow","vshow","sshow"].forEach(id => set[id] = $(id).checked ? 1 : 0); set.mode = mapMode;
+  return {game:LOCKED ? "island-party" : "island", nx:T.nx, ny:T.ny, fog:fogRLE(), markers:state.markers, party:state.party, turn:state.turn, wind:state.wind, env:{w:$("vweather").selectedIndex, c:clockMin}, set, log:withLog ? state.log : [], seq:state.seq};
 }
 function applySet(st) {
   if (!st) return;
   ["rkm","rstep","v0","veye","vtgt","vhmax","vk","skm"].forEach(id => { if (st[id] !== undefined && isFinite(st[id])) $(id).value = st[id]; });
   ["rshow","vshow","sshow"].forEach(id => { if (st[id] !== undefined) $(id).checked = !!st[id]; });
-  if (st.dim !== undefined) { fogDim = !!st.dim; $("fogDim").checked = fogDim; }
   if (st.mode && st.mode !== mapMode) { const b = document.querySelector(`#modeBtns button[data-m="${st.mode}"]`); if (b) b.click(); }
 }
 function applySession(d) {
   if (d.nx && d.ny && (d.nx !== T.nx || d.ny !== T.ny)) throw new Error("이 지도와 크기가 다른 저장본입니다.");
-  state.markers = d.markers || []; state.party = d.party || null; state.start = d.start || null; state.turn = d.turn || 1; state.pending = null; state.sel = null;
+  state.markers = d.markers || []; state.party = d.party || null; state.turn = d.turn || 1; state.pending = null; state.sel = null;
   setFogRLE(d.fog || null);
-  state.wind = d.wind || state.wind; state.log = d.log || []; state.seq = d.seq || state.log.reduce((m, l) => Math.max(m, l.n || 0), 0);
-  applySet(d.set); visDirty = true; if (LOCKED) { visDirty = false; setVisRLE(d.vis || null); } renderMarkers(); renderLog(); showGM(); syncWind(); applyEnv(d.env); showMoveUI();
+  if (LOCKED) state.markers = state.markers.filter(markerVisible).map(m => ({type: m.type, x: m.x, y: m.y, desc: m.desc}));   // 파티 페이지: 보이는 표식만 남김
+  state.wind = d.wind || state.wind; state.log = LOCKED ? [] : (d.log || []); state.seq = d.seq || state.log.reduce((m, l) => Math.max(m, l.n || 0), 0);
+  applySet(d.set); visDirty = true; renderMarkers(); renderLog(); showGM(); syncWind(); applyEnv(d.env); showMoveUI();
+  markStartExplored(); if (!state.party && !LOCKED) startGame();
+  undoStack.length = 0; showUndo();
   if (state.party) centerOn(state.party.x, state.party.y);
   redraw(); saveLocal();
 }
@@ -270,46 +262,13 @@ async function encodeCode(obj, head) {
   return `${head}${kind}-${body}-${crc32(body)}`;
 }
 const makeCode = withLog => encodeCode(getSession(withLog), "ISL1");
-function getPartySession() {        // 파티에게 보여도 되는 정보만
-  if (state.party) ensureVis();
-  return {game:"island-party", nx:T.nx, ny:T.ny, fog:fogRLE(), vis:visMask && state.party ? rleOf(visMask) : null, start:state.start, party:state.party, turn:state.turn, wind:state.wind, env:{w:$("vweather").selectedIndex, c:clockMin},
-    markers:state.markers.filter(markerVisible).map(m => ({type:m.type, x:m.x, y:m.y, desc:m.desc}))};
-}
-async function buildRecord(party) {
-  const w = state.wind, L = [], ph = phaseOf(clockMin)[0], wn = $("vweather").selectedOptions[0].text;
-  const pos = q => q ? `(${q.x}, ${q.y}) ${T.classes[cls(q.x, q.y)]}` : "없음";
-  if (!party && state.party) ensureVis();
-  L.push(party ? "=== 섬 지도 · 파티 화면 기록 ===" : "=== 섬 지도 · 마스터 세션 기록 ===");
-  L.push(`턴 ${state.turn} · ${clockStr()} (${ph}) · 날씨 ${wn}` + (w ? ` · ${compassName(w.from)}풍 ${w.speed} m/s (${w.from}°에서 불어옴)` : ""));
-  L.push(`시작 지점: ${state.start ? `(${state.start.x}, ${state.start.y})` : "미지정"}`);
-  L.push(`파티 말: ${pos(state.party)}`);
-  const n = exploredCount(); L.push(`탐색한 칸: ${n.toLocaleString()}개 (약 ${(n * 25).toLocaleString()} km²)`);
-  if (state.party && visMask) { let c = 0; for (let i = 0; i < visMask.length; i++) c += visMask[i]; L.push(`현재 시야: ${c.toLocaleString()}칸`); }
-  L.push(""); L.push(party ? "-- 발견한 표식 --" : "-- 표식 (숨김 포함) --");
-  const ms = party ? state.markers.filter(markerVisible) : state.markers;
-  if (!ms.length) L.push("(없음)");
-  for (const m of ms) {
-    const vis = markerVisible(m), st = party ? "" : " — " + (m.code ? `코드 ${m.code}, ${m.rev ? "공개됨" : "미공개"}` : (vis ? "발견됨" : "미발견"));
-    L.push(`[${TYPES[m.type][0]}] (${m.x}, ${m.y}) ${m.desc || "(설명 없음)"}${st}`);
-  }
-  L.push(""); L.push("-- 이어하기 코드 (이 텍스트를 통째로 ‘코드 불러오기’ 칸에 붙여넣으면 재개) --");
-  L.push(party ? await encodeCode(getPartySession(), "ISP1") : await makeCode($("codeLog").checked));
-  return L.join("\n");
-}
 function downloadText(name, text) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type:"text/plain;charset=utf-8"})); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
-function wireRecord(ids, party) {
-  const [ta, mk, cp, sv, msg] = ids.map($);
-  mk.onclick = async () => { ta.value = await buildRecord(party); msg.textContent = `기록 ${ta.value.length.toLocaleString()}자 — ${state.turn}턴 · ${clockStr()}`; };
-  cp.onclick = async () => { if (!ta.value) await mk.onclick(); msg.textContent = (await copyText(ta.value)) ? "기록 텍스트를 복사했습니다." : "복사 실패 — 글상자에서 직접 복사하세요."; };
-  sv.onclick = async () => { if (!ta.value) await mk.onclick(); downloadText(`island-${party ? "party" : "master"}-turn${state.turn}.txt`, ta.value); msg.textContent = ".txt 파일로 저장했습니다."; };
-}
 async function readCode(text) {
-  const raw = String(text), hit = /IS[LP]1[ZR]-[A-Za-z0-9_-]+-[0-9a-f]{8}/.exec(raw);      // 기록 텍스트 안에 섞인 코드도 인식
+  const raw = String(text), hit = /IS[LP]1[ZR]-[A-Za-z0-9_-]+-[0-9a-f]{8}/.exec(raw);      // 앞뒤에 다른 글이 섞여 있어도 코드를 찾아냄
   const t = hit ? hit[0] : raw.replace(/\s+/g, "");
   const m = /^(ISL1|ISP1)([ZR])-([A-Za-z0-9_-]+)-([0-9a-f]{8})$/.exec(t);
-  if (!m) throw new Error("저장 코드 형식이 아닙니다 (ISL1… 또는 ISP1…로 시작하는 한 줄이어야 합니다).");
-  if (LOCKED && m[1] !== "ISP1") throw new Error("파티용 지도에는 파티 코드(ISP1…)만 넣을 수 있습니다.");
-  if (!LOCKED && m[1] !== "ISL1") throw new Error("이것은 파티용 코드(ISP1…)입니다. 마스터 지도에는 마스터 저장 코드(ISL1…)를 넣으세요.");
+  if (!m) throw new Error("저장 코드 형식이 아닙니다 (ISL1…로 시작하는 한 줄이어야 합니다).");
+  if (!LOCKED && m[1] !== "ISL1") throw new Error("이것은 구형 파티용 코드(ISP1…)입니다. 마스터 지도에는 저장 코드(ISL1…)를 넣으세요.");
   if (crc32(m[3]) !== m[4]) throw new Error("코드가 손상되었습니다 (일부가 잘렸거나 글자가 바뀜).");
   let bytes = b64dec(m[3]);
   if (m[2] === "Z") { if (typeof DecompressionStream === "undefined") throw new Error("이 브라우저는 압축 코드를 풀 수 없습니다 (최신 Chrome/Edge/Firefox/Safari 사용)."); bytes = await pipeBytes(bytes, new DecompressionStream("deflate-raw")); }
@@ -358,23 +317,22 @@ function rleOf(arr) {                       // [0의 개수, 1의 개수, 0의 �
 }
 function fillRLE(arr, r) { arr.fill(0); if (!r) return; let i = 0, v = 0; for (const n of r) { if (v) arr.fill(1, i, Math.min(arr.length, i + n)); i += n; v ^= 1; } }
 const fogRLE = () => rleOf(explored);
-function setFogRLE(r) { fillRLE(explored, r); paintFog(); showFogInfo(); }
-function setVisRLE(r) {                     // 파티 전용 페이지: 마스터가 보낸 ‘현재 시야’를 그대로 사용
-  if (!r) { visMask = null; visList = []; paintFog(); return; }
-  visMask = new Uint8Array(T.nx * T.ny); fillRLE(visMask, r); visList = []; paintFog();
+function setFogRLE(r) { fillRLE(explored, r); paintFog(); }
+function startGame() {                       // 새 세션: 파티 말을 고정 시작 지점에 놓고 시야를 밝힘
+  state.party = {x: START.x, y: START.y}; visDirty = true; revealVis();
+  logEvt(`시작 지점 (${START.x}, ${START.y}) ${T.classes[cls(START.x, START.y)]}에서 시작 · ${state.turn}턴`);
 }
 function markStartExplored() {              // 시작 지점은 항상 보임 (둘레 한 칸 포함)
   const st = state.start; if (!st) return;
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const x = st.x + dx, y = st.y + dy; if (x >= 0 && x < T.nx && y >= 0 && y < T.ny) explored[y * T.nx + x] = 1; }
-  paintFog(); showFogInfo();
+  paintFog();
 }
 function exploredCount() { let n = 0; for (let i = 0; i < explored.length; i++) n += explored[i]; return n; }
-function showFogInfo() { const n = exploredCount(); $("fogInfo").innerHTML = `탐색한 칸 <b>${n.toLocaleString()}</b>개 (약 ${(n * 25).toLocaleString()} km²)`; }
 function revealVis() {                      // 현재 시야(날씨·시간대 반영)를 탐색 기록에 더함
   if (!state.party) return 0;
   ensureVis(); let add = 0;
   for (const id of visList) if (!explored[id]) { explored[id] = 1; add++; }
-  if (add) { paintFog(); showFogInfo(); }
+  if (add) { paintFog(); }
   return add;
 }
 const isKnown = (x, y) => !viewParty || explored[y * T.nx + x] === 1;
@@ -382,8 +340,9 @@ const markerVisible = m => m.code ? !!m.rev : explored[m.y * T.nx + m.x] === 1;
 function revealByCode(code) {
   const c = code.trim().toLowerCase(); if (!c) return null;
   const hit = state.markers.filter(m => m.code && m.code.toLowerCase() === c);
+  if (hit.length) snap("코드 공개");
   for (const m of hit) { m.rev = true; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const x = m.x + dx, y = m.y + dy; if (x >= 0 && x < T.nx && y >= 0 && y < T.ny) explored[y * T.nx + x] = 1; } }
-  if (hit.length) { paintFog(); showFogInfo(); }
+  if (hit.length) { paintFog(); }
   return hit;
 }
 
@@ -439,7 +398,7 @@ function showVis() {
   $("vInfo").innerHTML = !state.party ? "파티 말을 배치하세요." : !st ? "‘시야 범위 표시’를 켜세요." :
     `보이는 칸 <b>${st.n}</b>개 (약 ${st.area.toLocaleString()} km²)<br>실효 기본 시야 ${st.Veff.toFixed(1)} km<br>가장 먼 방향 <b>${st.best.toFixed(0)} km</b> (${compassName(st.bestDir)}) · 가장 짧은 방향 <b>${st.worst.toFixed(0)} km</b> (${compassName(st.worstDir)})`;
 }
-function ensureVis() { if (LOCKED) return; if (visDirty) { computeVis(); showVis(); paintFog(); } }
+function ensureVis() { if (visDirty) { computeVis(); showVis(); paintFog(); } }
 function drawVis(ts) {
   if (!$("vshow").checked || !state.party) return;
   if (visDirty) { ensureVis(); if (state.sel) showInfo(); }
@@ -537,8 +496,8 @@ function redraw() {
     for (let j = y0; j <= y1; j++) { ctx.moveTo(view.x + x0*ts, view.y + j*ts); ctx.lineTo(view.x + x1*ts, view.y + j*ts); }
     ctx.stroke();
   }
-  if (viewParty && !LOCKED && state.party && visDirty) ensureVis();
-  if (fogCv && (viewParty || fogDim)) { ctx.imageSmoothingEnabled = false; ctx.globalAlpha = viewParty ? 1 : 0.55; ctx.drawImage(fogCv, view.x, view.y, img.width * view.k, img.height * view.k); ctx.globalAlpha = 1; }
+  if (viewParty && state.party && visDirty) ensureVis();
+  if (fogCv && viewParty) { ctx.imageSmoothingEnabled = false; ctx.drawImage(fogCv, view.x, view.y, img.width * view.k, img.height * view.k); }
   if ($("mshow").checked) for (const m of state.markers) { const vis = markerVisible(m); if (vis || !viewParty) { ctx.globalAlpha = vis ? 1 : 0.45; drawMarker(m, ts); ctx.globalAlpha = 1; } }
   if (state.start) drawStart(ts);
   drawVis(ts);
@@ -621,6 +580,22 @@ function clickAt(px, py) {
   state.sel = t; showInfo(); redraw(); saveLocal();
 }
 
+// ---------- 마지막 행동 취소 ----------
+const undoStack = [];
+function snap(label) {                       // 행동 직전 상태를 저장 (최근 40개, 이 화면을 닫으면 사라짐)
+  undoStack.push({label, party: state.party ? {x: state.party.x, y: state.party.y} : null, turn: state.turn, clock: clockMin, explored: explored.slice(), markers: JSON.stringify(state.markers), log: state.log.slice(), seq: state.seq});
+  if (undoStack.length > 40) undoStack.shift();
+  showUndo();
+}
+function showUndo() { $("undoBtn").disabled = !undoStack.length; $("undoInfo").textContent = undoStack.length ? `되돌릴 수 있는 행동 ${undoStack.length}개` : "되돌릴 행동 없음"; }
+function undoLast() {
+  const u = undoStack.pop(); if (!u) return;
+  state.party = u.party; state.turn = u.turn; clockMin = u.clock; syncClock(); explored.set(u.explored); state.markers = JSON.parse(u.markers); state.log = u.log; state.seq = u.seq; state.pending = null;
+  visDirty = true; if (state.party) ensureVis(); paintFog();
+  logEvt(`↩ 마지막 행동 취소: ${u.label}`);
+  renderMarkers(); renderLog(); showGM(); showMoveUI(); showUndo(); if (state.sel) showInfo(); redraw(); saveLocal();
+}
+
 // ---------- 턴 / 이동 ----------
 function showMoveUI() {
   const pd = state.pending, box = $("moveBox");
@@ -629,15 +604,7 @@ function showMoveUI() {
     $("moveInfo").innerHTML = `이동 예정 <b>(${pd.x}, ${pd.y})</b> · ${T.classes[cls(pd.x, pd.y)]}` + (state.party ? ` · 직선 ${(Math.hypot(pd.x - state.party.x, pd.y - state.party.y) * 5).toFixed(0)} km` : "");
     $("moveOk").textContent = state.party ? "이동 확인 (턴+1, +15분)" : "이 칸에 말 배치";
   }
-  $("startSetRow").style.display = !state.start ? "" : "none";
-  $("startInfo").textContent = state.start ? `시작 지점 (${state.start.x}, ${state.start.y}) 고정됨` : "시작 지점 미지정 — ‘이동’으로 칸을 고른 뒤 ‘시작 지점으로 고정’";
-  $("startReset").style.display = state.start ? "" : "none";
   $("turnInfo").textContent = `현재 ${state.turn}턴 · ${clockStr()}`;
-}
-function setStart(t) {
-  state.start = {x: t.x, y: t.y}; state.pending = null; markStartExplored(); logEvt(`🚩 시작 지점 고정 (${t.x}, ${t.y}) ${T.classes[cls(t.x, t.y)]}`);
-  if (!state.party) { state.party = {x: t.x, y: t.y}; visDirty = true; const n = revealVis(); logEvt(`파티 말 배치 (${t.x}, ${t.y}) · ${state.turn}턴 · 새로 밝힌 칸 ${n}`); }
-  showGM(); showMoveUI(); renderMarkers(); redraw(); saveLocal();
 }
 function nextTurn(why) {
   state.turn++; clockMin = (clockMin + 15) % 1440; syncClock(); visDirty = true;
@@ -646,6 +613,7 @@ function nextTurn(why) {
 }
 function confirmMove() {
   const t = state.pending; if (!t) return;
+  snap(state.party ? `이동 → (${t.x}, ${t.y})` : "말 배치");
   if (!state.party) { state.party = {x: t.x, y: t.y}; state.pending = null; visDirty = true; const n = revealVis(); logEvt(`파티 말 배치 (${t.x}, ${t.y}) ${T.classes[cls(t.x, t.y)]} · ${state.turn}턴 · 새로 밝힌 칸 ${n}`); }
   else { state.party = {x: t.x, y: t.y}; state.pending = null; visDirty = true; nextTurn(`이동 → (${t.x}, ${t.y}) ${T.classes[cls(t.x, t.y)]}`); }
   showGM(); showMoveUI(); redraw(); saveLocal();
@@ -726,16 +694,11 @@ function initUI() {
   envBox.addEventListener("toggle", () => { try { localStorage.setItem("island-env-open", envBox.open ? "1" : "0"); } catch (e) {} });
   syncClock();
   $("envRoll").onclick = () => { $("vweather").selectedIndex = Math.floor(rand() * 4); clockMin = Math.floor(rand() * 96) * 15; syncClock(); rollWind(true); syncWind(); visDirty = true; const [w, t] = envNames(); logEvt(`🌦 환경: ${w} · ${t} · ${compassName(state.wind.from)}풍 ${state.wind.speed} m/s`); saveLocal(); redraw(); };
-  $("fogDim").onchange = () => { fogDim = $("fogDim").checked; renderMarkers(); if (state.sel) showInfo(); redraw(); saveLocal(); };
-  $("fogReveal").onclick = () => { if (!state.party) return; visDirty = true; const n = revealVis(); logEvt(`🔦 현재 시야 밝힘 · 새로 밝힌 칸 ${n}`); renderMarkers(); redraw(); saveLocal(); };
-  $("fogReset").onclick = () => { if (!confirm("탐색 기록을 모두 지웁니다 (숨은 표지의 공개 상태는 유지). 계속할까요?")) return; explored.fill(0); markStartExplored(); paintFog(); showFogInfo(); logEvt("🌑 탐색 기록 초기화"); renderMarkers(); redraw(); saveLocal(); };
   $("revBtn").onclick = $("revCode").onkeydown = e => { if (e.type === "keydown" && e.key !== "Enter") return; const hit = revealByCode($("revCode").value); if (hit === null) return; if (!hit.length) { $("revMsg").textContent = "일치하는 코드가 없습니다."; return; }
     $("revMsg").textContent = `공개됨: ${hit.map(m => (m.desc || TYPES[m.type][0]) + ` (${m.x},${m.y})`).join(", ")}`; logEvt(`🔓 코드로 공개: ${hit.map(m => esc(m.desc || TYPES[m.type][0])).join(", ")}`); $("revCode").value = ""; renderMarkers(); if (state.sel) showInfo(); redraw(); saveLocal(); };
   $("moveOk").onclick = confirmMove;
-  $("startSet").onclick = () => { if (state.pending) setStart(state.pending); };
-  $("startReset").onclick = () => { if (!confirm("시작 지점 고정을 해제합니다 (파티 말과 탐색 기록은 그대로). 계속할까요?")) return; state.start = null; logEvt("🚩 시작 지점 해제"); showMoveUI(); redraw(); saveLocal(); };
-  $("moveCancel").onclick = () => { state.pending = null; showMoveUI(); redraw(); };
-  $("turnPass").onclick = () => { nextTurn("턴 넘기기"); showMoveUI(); redraw(); saveLocal(); };
+  $("undoBtn").onclick = undoLast;
+  $("turnPass").onclick = () => { snap("턴 넘기기"); nextTurn("턴 넘기기"); showMoveUI(); redraw(); saveLocal(); };
   $("gmGo").onclick = () => { if (state.party) { centerOn(state.party.x, state.party.y); redraw(); } };
   $("rshow").onchange = $("rkm").oninput = $("rstep").oninput = () => { redraw(); if (state.sel) showInfo(); };
   $("mtype").innerHTML = Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${k}종 ${v[0]}</option>`).join("");
@@ -746,28 +709,33 @@ function initUI() {
   $("copyBtn").onclick = async () => { if (!lastRoll) { $("copyMsg").textContent = "복사할 결과가 없습니다."; return; } $("copyMsg").textContent = (await copyText(lastRoll)) ? "복사됨: " + lastRoll : "복사 실패 (브라우저 권한 확인)"; };
   const hints = {select:"클릭한 칸의 정보를 봅니다.", party:"옮길 칸을 클릭하면 녹색 X가 표시됩니다. ‘이동 확인’을 누르면 붉은 X(파티 말)가 그리로 옮겨가고 1턴(15분)이 지납니다.", measure:"두 칸을 차례로 클릭하면 직선거리를 잽니다."};
   document.querySelectorAll("#tools button").forEach(b => b.onclick = () => { tool = b.dataset.t; measureA = null; document.querySelectorAll("#tools button").forEach(x => x.classList.toggle("on", x === b)); $("toolhint").textContent = hints[tool] + " 드래그=지도 이동, 휠/핀치=확대."; redraw(); });
-  $("mAdd").onclick = () => { if (!state.sel) return; const m = {type:+$("mtype").value, x:state.sel.x, y:state.sel.y, desc:$("mdesc").value.trim()}; const cd = $("mcode").value.trim(); if (cd) m.code = cd; state.markers.push(m); $("mdesc").value = ""; $("mcode").value = ""; logEvt(`마커 추가 [${TYPES[m.type][0]}] (${m.x},${m.y}) ${esc(m.desc)}${m.code ? " (코드 지정)" : ""}`); renderMarkers(); showInfo(); redraw(); };
-  $("mDel").onclick = () => { if (!state.sel) return; const n = state.markers.length; state.markers = state.markers.filter(m => !(m.x === state.sel.x && m.y === state.sel.y)); if (n !== state.markers.length) logEvt(`마커 삭제 (${state.sel.x},${state.sel.y})`); renderMarkers(); showInfo(); redraw(); };
+  $("mAdd").onclick = () => { if (!state.sel) return; snap("마커 추가"); const m = {type:+$("mtype").value, x:state.sel.x, y:state.sel.y, desc:$("mdesc").value.trim()}; const cd = $("mcode").value.trim(); if (cd) m.code = cd; state.markers.push(m); $("mdesc").value = ""; $("mcode").value = ""; logEvt(`마커 추가 [${TYPES[m.type][0]}] (${m.x},${m.y}) ${esc(m.desc)}${m.code ? " (코드 지정)" : ""}`); renderMarkers(); showInfo(); redraw(); };
+  $("mDel").onclick = () => { if (!state.sel) return; const n = state.markers.length; snap("마커 삭제"); state.markers = state.markers.filter(m => !(m.x === state.sel.x && m.y === state.sel.y)); if (n === state.markers.length) undoStack.pop(); showUndo(); if (n !== state.markers.length) logEvt(`마커 삭제 (${state.sel.x},${state.sel.y})`); renderMarkers(); showInfo(); redraw(); };
   $("mshow").onchange = $("gshow").onchange = redraw;
   $("rndTile").onclick = () => { for (let i = 0; i < 2000; i++) { const x = Math.floor(rand() * T.nx), y = Math.floor(rand() * T.ny), c = cls(x, y); if (c !== 0 && c !== 1) { state.sel = {x, y}; centerOn(x, y); logEvt(`무작위 칸: (${x},${y}) ${T.classes[c]}`); showInfo(); redraw(); return; } } };
   $("rndDir").onclick = () => { const d = ["북","북동","동","남동","남","남서","서","북서"]; const r = d[Math.floor(rand() * 8)]; $("rollRes").textContent = r; $("rollForm").textContent = "무작위 방향"; lastRoll = "무작위 방향: " + r; logEvt(`🧭 방향: <b>${r}</b>`); };
   $("saveBtn").onclick = () => { const blob = new Blob([JSON.stringify(getSession(true), null, 1)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "session.json"; a.click(); };
   $("loadBtn").onclick = () => $("file").click();
-  $("codeMake").onclick = async () => { const c = await makeCode($("codeLog").checked); $("saveCode").value = c; $("codeMsg").textContent = `코드 ${c.length.toLocaleString()}자 생성됨 — ${state.turn}턴 · ${clockStr()}`; };
-  $("codeCopy").onclick = async () => { if (!$("saveCode").value.trim()) await $("codeMake").onclick(); $("codeMsg").textContent = (await copyText($("saveCode").value.trim())) ? "코드를 클립보드에 복사했습니다." : "복사 실패 — 글상자를 직접 선택해 복사하세요."; };
-  wireRecord(["recText","recMake","recCopy","recSave","recMsg"], false);
-  wireRecord(["ptRec","ptRecMake","ptRecCopy","ptRecSave","ptRecMsg"], true);
-  $("pcMake").onclick = async () => { const c = await encodeCode(getPartySession(), "ISP1"); $("partyCode").value = c; $("pcMsg").textContent = (await copyText(c)) ? `파티용 코드 ${c.length.toLocaleString()}자를 복사했습니다 — ${state.turn}턴 · ${clockStr()}` : `파티용 코드 ${c.length.toLocaleString()}자 생성됨 (자동 복사 실패 — 글상자에서 직접 복사)`; };
+  const doExport = async (ta, msg, withLog) => {
+    const c = await makeCode(withLog); ta.value = c;
+    msg.textContent = (await copyText(c)) ? `저장 코드 ${c.length.toLocaleString()}자를 복사했습니다 — ${state.turn}턴 · ${clockStr()}` : `저장 코드 ${c.length.toLocaleString()}자 생성됨 (자동 복사 실패 — 글상자에서 직접 복사하세요)`;
+    return c;
+  };
+  $("codeMake").onclick = () => doExport($("saveCode"), $("codeMsg"), $("codeLog").checked);
+  $("codeSave").onclick = async () => { const c = await doExport($("saveCode"), $("codeMsg"), $("codeLog").checked); downloadText(`island-save-turn${state.turn}.txt`, c); $("codeMsg").textContent += " · .txt로도 저장했습니다."; };
+  $("ptRecMake").onclick = () => doExport($("ptRec"), $("ptRecMsg"), false);
+  $("ptRecSave").onclick = async () => { const c = await doExport($("ptRec"), $("ptRecMsg"), false); downloadText(`island-party-turn${state.turn}.txt`, c); $("ptRecMsg").textContent += " · .txt로도 저장했습니다."; };
   $("pcOpen").onclick = () => { const u = new URL(location.href); u.search = "?view=party"; u.hash = ""; window.open(u.toString(), "_blank"); };
   $("ptLoad").onclick = async () => { try { const d = await readCode($("ptIn").value); applySession(d); $("ptMsg").textContent = `불러옴 — ${state.turn}턴 · ${clockStr()}`; $("ptIn").value = ""; } catch (err) { $("ptMsg").textContent = "불러오기 실패: " + err.message; } };
-  $("codeLoad").onclick = async () => { try { const d = await readCode($("saveCode").value); applySession(d); $("codeMsg").textContent = `불러옴 — ${state.turn}턴 · ${clockStr()}` + (state.party ? ` · 말 (${state.party.x}, ${state.party.y})` : ""); logEvt("📥 저장 코드로 불러옴"); } catch (err) { $("codeMsg").textContent = "불러오기 실패: " + err.message; } };
+  $("codeLoad").onclick = async () => { try { const d = await readCode($("codeIn").value); if (d.game === "island-party") throw new Error("파티 화면에서 내보낸 코드입니다. 마스터 세션에는 마스터가 내보낸 저장 코드를 넣으세요."); applySession(d); $("loadMsg").textContent = `불러옴 — ${state.turn}턴 · ${clockStr()}` + (state.party ? ` · 말 (${state.party.x}, ${state.party.y})` : ""); $("codeIn").value = ""; logEvt("📥 저장 코드로 불러옴"); } catch (err) { $("loadMsg").textContent = "불러오기 실패: " + err.message; } };
   $("file").onchange = async e => { const f = e.target.files[0]; if (!f) return; try { applySession(JSON.parse(await f.text())); } catch (err) { alert("불러오기 실패: " + err.message); } e.target.value = ""; };
   $("clearLog").onclick = () => { state.log = []; renderLog(); saveLocal(); };
   if (LOCKED) document.title = "섬 지도 (파티용)";
-  syncView();
+  syncView(); showUndo();
   document.querySelectorAll("#viewBtns button").forEach(b => b.onclick = () => setView(b.dataset.v === "party"));
   addEventListener("resize", resize); resize();
 }
 </script>
 </body>
 </html>
+
