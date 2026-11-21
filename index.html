@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>섬 지도 테스트 세션</title>
+<title>미야자키 섬 지도 테스트 시뮬레이터</title>
 <link rel="icon" href="data:,">
 <style>
   :root { --bg:#14181d; --panel:#1d232b; --line:#323b47; --fg:#e8edf2; --dim:#93a0ae; --acc:#4da3ff; }
@@ -48,14 +48,13 @@
     <div id="hud">불러오는 중…</div>
   </div>
   <div id="side">
-    <div id="modeTag">마스터용 지도 (전체 공개)</div>
+    <div id="modeTag">마스터 지도</div>
     <h2>지도 표시</h2>
     <div class="row" id="modeBtns"><button data-m="elev" class="on">고도맵</button><button data-m="terrain">지형맵</button></div>
     <div id="legend" class="card" style="display:none"></div>
     <div class="gm-only">
       <div class="sub">시점</div>
-      <div class="row" id="viewBtns"><button data-v="master" class="on">마스터 시점 (전체)</button><button data-v="party">파티 시점 (시야만)</button></div>
-      <div class="dim">파티 시점으로 바꾸면 이 화면이 파티가 보는 모습 그대로(탐색한 칸만, 발견한 마커만) 표시됩니다. 화면 공유할 때 쓰세요.</div>
+      <div class="row" id="viewBtns"><button data-v="master" class="on">마스터 시야</button><button data-v="party">파티 시야</button></div>
     </div>
 
     <h2>선택한 칸</h2>
@@ -78,7 +77,7 @@
 
     <div class="gm-only secret">
     <h2>숨은 표지</h2>
-    <div class="dim">‘공개 코드’를 지정해 둔 표식(지은 오두막 등)은 코드를 입력하면 드러납니다.</div>
+    <div class="dim">코드를 입력하면 과거 세션에서 기록한 표지 등을 계승받습니다.</div>
     <div class="row"><input type="text" id="revCode" placeholder="숨은 표지 코드 입력" style="flex:1;min-width:120px"><button id="revBtn">공개</button></div>
     <div class="dim" id="revMsg"></div>
 
@@ -125,7 +124,7 @@
     <div class="card"><div class="dim" id="rollForm">굴린 결과의 수식이 여기에 표시됩니다.</div>
       <div class="big" id="rollRes">–</div>
       <div class="row"><button id="copyBtn">수식·결과 복사</button><span class="dim" id="copyMsg"></span></div></div>
-    <div class="row"><button id="rndTile" class="gm-only secret">무작위 칸 뽑기(육지)</button><button id="rndDir">무작위 방향</button></div>
+    <div class="row"><button id="rndTile" class="gm-only secret">랜덤 칸 뽑기</button><button id="rndDir">랜덤 방향 뽑기</button></div>
 
     <h2>표시(마커)</h2>
     <div class="gm-only secret">
